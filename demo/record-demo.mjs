@@ -145,7 +145,7 @@ async function main() {
     const at = (Date.now() - t0) / 1000;
     marks.push({ step: n, label, startSec: Math.round(at * 10) / 10 });
     log(`=== PASO ${n}: ${label} (t=${at.toFixed(0)}s)`);
-    await caption(`Paso ${n}/11 - ${label}`);
+    await caption(`Paso ${n}/12 - ${label}`);
   };
   const shot = (name) => page.screenshot({ path: path.join(OUT, 'shots', name + '.png') });
   const pause = (ms) => page.waitForTimeout(ms);
@@ -214,7 +214,7 @@ async function main() {
     sid = Number((await page.locator('#sid').textContent()).trim());
     const dockerRun = (await page.locator('#cmd').textContent()).trim();
     if (sid !== expectedId) log(`aviso: sesion ${sid} != esperada ${expectedId}`);
-    await caption(`Paso 1/11 - Sesion ${sid} creada: el backend genera el docker run`);
+    await caption(`Paso 1/12 - Sesion ${sid} creada: el backend genera el docker run`);
     await pause(7000);
     await shot('step01');
 
@@ -387,7 +387,7 @@ async function main() {
     await shot('step09a');
     await newTerminal();
     await pause(1500);
-    await typeInTerminal('cd frontend && npm install && npm run dev');
+    await typeInTerminal('cd frontend && npm install && npm start');
     await waitHttp('http://localhost:4200/', 'frontend :4200', 300000);
     await pause(5000);
     await shot('step09b');
@@ -399,7 +399,7 @@ async function main() {
     }
     await page.goto('http://localhost:4200/');
     await page.evaluate(() => { document.documentElement.style.zoom = '1.8'; document.body.style.paddingTop = '50px'; });
-    await caption('Paso 9/11 - Frontend en localhost:4200 consumiendo la API del examen (:8081)');
+    await caption('Paso 9/12 - Frontend en localhost:4200 consumiendo la API del examen (:8081)');
     await pause(5000);
     await page.locator('#calc').click();
     await pause(4000);
@@ -425,47 +425,66 @@ async function main() {
     await pause(2000);
     ecs.push(await runAndWait('git commit -m "feat: implementar applyDiscount y agregar frontend"'));
     await pause(3500);
-    ecs.push(await runAndWait(`git push -u origin session-${sid}`));
+    ecs.push(await runAndWait(`git push -u origin HEAD`));
     log('git exits', ecs);
     await pause(5000);
     await shot('step10');
     if (ecs.some((c) => c !== 0)) throw new Error('algun comando git fallo: ' + ecs.join(','));
 
-    // =============== PASO 11: vista del profesor ===============
-    // espera a que el agente de telemetria envie el ultimo lote (cada 10 s)
+    // =============== PASO 11: submit ===============
+    await mark(11, 'Entrega: comando submit (commit + push + SHA final) y token invalidado');
+    const ecSubmit = await runAndWait('submit');
+    log('submit exit', ecSubmit);
+    await pause(4000);
+    await shot('step11a');
+    if (ecSubmit !== 0) throw new Error('submit fallo: ' + ecSubmit);
+    // con la sesion COMPLETED el token deja de servir: otro push tiene que fallar
+    const ecPush2 = await runAndWait('git push origin HEAD');
+    log('git push post-submit exit', ecPush2);
+    await pause(5000);
+    await shot('step11b');
+    if (ecPush2 === 0) throw new Error('el push posterior al submit deberia haber fallado (401)');
     {
       const t1 = Date.now();
-      while (Date.now() - t1 < 90000) {
+      while (Date.now() - t1 < 60000) {
         const evs = await api(`/api/sessions/${sid}/events`);
-        if (evs.some((e) => e.type === 'COMMAND_EXECUTED' && String(e.payload).includes('git push')) && evs.some((e) => e.type === 'GIT_PUSH')) break;
+        if (evs.some((e) => e.type === 'SUBMISSION_COMPLETED') && evs.some((e) => e.type === 'GIT_PUSH')) break;
         await sleep(3000);
       }
     }
+
+    // =============== PASO 12: vista del profesor ===============
     await page.goto(BACKEND + '/professor.html');
     await page.evaluate(() => { document.documentElement.style.zoom = '1.35'; document.body.style.paddingTop = '60px'; });
-    await mark(11, 'Panel del profesor: timeline de la sesion (donde queda el uso de IA)');
+    await mark(12, 'Panel del profesor: estado, SHA final, CI y timeline de la sesion');
     await pause(3500);
     await page.locator(`#sessions tr[data-id="${sid}"]`).click();
     await pause(3500);
-    await shot('step11a');
+    await shot('step12a');
+    const result = await (await fetch(`${BACKEND}/api/sessions/${sid}/result`)).json();
+    fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify(result, null, 2));
+    log('result:', JSON.stringify(result));
+    if (result.status !== 'COMPLETED' || !result.finalSha) throw new Error('el resultado no muestra sesion COMPLETED con SHA final');
+    await caption('Paso 12/12 - Estado COMPLETED, SHA final y resultado del CI');
+    await pause(6000);
     const hl = async (type, text) => {
       const row = page.locator('#timeline tbody tr', { hasText: type }).first();
       if (!(await row.count())) { log('sin eventos', type); return; }
       await row.scrollIntoViewIfNeeded();
       await row.evaluate((el) => { el.querySelectorAll('td').forEach((td) => { td.style.background = '#fde68a'; td.style.borderColor = '#f59e0b'; }); el.scrollIntoView({ block: 'center' }); });
-      await caption(`Paso 11/11 - ${text}`);
+      await caption(`Paso 12/12 - ${text}`);
       await pause(4500);
     };
     await hl('FILE_CHANGED', 'Eventos de archivos (FILE_CHANGED)');
     await hl('COMMAND_EXECUTED', 'Comandos ejecutados en la terminal');
     await hl('AI_PROMPT', 'Prompt enviado a la IA (AI_PROMPT)');
-    await shot('step11b');
+    await shot('step12b');
     await hl('AI_RESPONSE', 'Respuesta de la IA (AI_RESPONSE)');
-    await shot('step11c');
+    await shot('step12c');
     await hl('GIT_PUSH', 'El push del alumno (GIT_PUSH)');
-    await shot('step11d');
+    await shot('step12d');
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-    await caption('Paso 11/11 - Timeline completa de la sesion');
+    await caption('Paso 12/12 - Timeline completa de la sesion');
     await pause(5000);
 
     fs.writeFileSync(path.join(OUT, 'events.json'), JSON.stringify(await api(`/api/sessions/${sid}/events`), null, 2));

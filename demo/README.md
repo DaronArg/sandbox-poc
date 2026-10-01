@@ -18,12 +18,12 @@ npx playwright install chromium
 node record-demo.mjs
 ```
 
-Dura unos 6 minutos. Salida en `demo/output/` (ignorada por git):
+Dura unos 7 minutos. Salida en `demo/output/` (ignorada por git):
 
 - `demo.webm`: el video.
-- `steps.json`: segundo de inicio de cada uno de los 11 pasos.
+- `steps.json`: segundo de inicio de cada uno de los 12 pasos.
 - `shots/`: screenshot al final de cada paso.
-- `events.json`: timeline de la sesion segun la API; `docker-run-stdout.txt`: stdout real del contenedor.
+- `result.json`: respuesta de `/result`; `events.json`: timeline de la sesion segun la API; `docker-run-stdout.txt`: stdout real del contenedor.
 
 Para mp4 (ffmpeg, p. ej. dentro de WSL: `sudo apt install ffmpeg`):
 
@@ -33,19 +33,20 @@ ffmpeg -i output/demo.webm -c:v libx264 -crf 23 -pix_fmt yuv420p -movflags +fast
 
 `KEEP_CONTAINER=1` deja el contenedor de la sesion corriendo al terminar (por defecto se borra).
 
-## Recorrido (11 pasos)
+## Recorrido (12 pasos)
 
 1. Pagina de inicio `:9090`: alumno + examen, "Iniciar", se ve el `docker run`.
 2. El `docker run` se ejecuta en WSL; se muestra el comando y su stdout real en una pagina local con estetica de terminal.
-3. IDE `:8080`: explorer con el repo clonado, branch `session-<id>`.
+3. IDE `:8080`: explorer con el repo clonado, branch `session-<id>-<hex>`.
 4. Se abre `PriceService.java` y se escribe un comentario a mano.
 5. Terminal de la IDE: `./mvnw test` -> fallan.
 6. Continue (chat): pregunta sobre el codigo (Ctrl+Enter = con el archivo activo como contexto).
 7. Continue: pide implementar `applyDiscount`, boton Apply del bloque de codigo, Accept del diff.
 8. `./mvnw test` -> pasan.
-9. `./mvnw spring-boot:run` (:8081) y `npm install && npm run dev` (:4200) en terminales de la IDE; se abre `:4200` y el front muestra el precio final.
+9. `./mvnw spring-boot:run` (:8081) y `npm install && npm start` (Angular, :4200) en terminales de la IDE; se abre `:4200` y el front muestra el precio final.
 10. `git status`, `git add`, `git commit`, `git push` desde la terminal de la IDE.
-11. `professor.html`: timeline de la sesion (archivos, comandos, prompts/respuestas de IA, push).
+11. `submit`: commit + push + SHA final al backend (sesion `COMPLETED`); un `git push` posterior falla (token invalidado).
+12. `professor.html`: estado, SHA final y resultado del CI arriba; timeline de la sesion (archivos, comandos, prompts/respuestas de IA, push, entrega).
 
 ## Notas de implementacion
 
@@ -53,3 +54,13 @@ ffmpeg -i output/demo.webm -c:v libx264 -crf 23 -pix_fmt yuv420p -movflags +fast
 - Continue vive en un webview (iframes anidados): se entra con `frameLocator('iframe.webview')` -> `iframe#active-frame`. Hay que cerrar la tarjeta "API Key" antes de escribir; se envia con Ctrl+Enter o con el boton de envio.
 - La sincronizacion con comandos de la terminal de la IDE se hace leyendo `/tmp/telemetry/commands.log` del contenedor (lo escribe el hook de bash), no mirando el canvas de xterm.
 - Si la IA devuelve un bloque parcial y Apply no produce el diff, repetir la grabacion (la respuesta del modelo no es determinista).
+
+## Narracion
+
+`narration.json` (voz es-AR) tiene un texto por paso; `narrate.py` arranca cada texto en el segundo de su paso (`output/steps.json`) y genera `output/demo-narrado.mp4`. Dentro de WSL (ffmpeg y edge-tts en `/opt/tts`):
+
+```
+wsl -d Ubuntu -- bash -lc 'cd /mnt/f/repos/tpi-tup/sandbox-poc/demo && ffmpeg -y -i output/demo.webm -c:v libx264 -crf 23 -pix_fmt yuv420p -movflags +faststart output/demo.mp4 && /opt/tts/bin/python narrate.py'
+```
+
+`narration-paisa.json` es la variante colombiana de los 11 pasos originales: no se actualizo a los 12 pasos (no tiene textos para submit ni para el panel nuevo).

@@ -46,3 +46,9 @@
 - NO medido: docker pull desde GHCR (C4 bloqueado por write:packages), carga sobre proxy git y gateway de IA, limites --memory/--cpus.
 - Decisiones: generador en contenedor del runtime (no hay node en WSL); mediciones del contenedor usan el backend real :9090 (la sesion creada queda en su base, como en los smokes). Gotcha: Git Bash expande `$VAR` de scripts pasados inline a `wsl bash -lc`; usar archivos .sh.
 - No se toco codigo del producto: no hizo falta re-correr los smokes.
+
+## C7 — QA final y demo (hecho salvo CI/GHCR)
+- 8/8 smokes OK desde cero; recorrido UI de 12 pasos (Angular, submit, push rechazado post-submit, panel con estado/SHA/CI) grabado a la primera; `demo-narrado.mp4` regenerado (444 s). Persistencia verificada reiniciando el backend tras el recorrido.
+- DoD: 1, 3, 5, 6 OK; 2 PARCIAL (CI `none`: sin `ci.yml` en main); 4 NO VALIDADO (GHCR). Ambos bloqueados por scopes `workflow`/`write:packages` de gh; comandos exactos en `qa-manual-report.md` y README ("Pendiente").
+- Decisiones: base H2 respaldada en WSL `/tmp/qa-db-backup` y recorrido con base limpia para que el panel muestre solo la sesion de la demo; el recorrido UI se hizo en local (el tunel solo en smoke-remote); variante `narration-paisa.json` no actualizada.
+- Error propio: un `git checkout -- .` descarto cambios sin commitear; se reescribieron README/demo desde cero (mismo contenido que se uso en la grabacion).
