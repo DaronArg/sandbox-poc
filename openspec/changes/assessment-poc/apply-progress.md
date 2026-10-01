@@ -29,3 +29,9 @@
 - **DESVÍO / PENDIENTE:** el token de `gh` de DaronArg no tiene scope `workflow`, GitHub rechazó el push de `.github/workflows/ci.yml`. El device flow (`gh auth refresh -s workflow`) no fue autorizado a tiempo. El repo se publicó SIN el workflow; `ci.yml` queda en `exam-template/.github/workflows/ci.yml` del monorepo. `gh run list` está vacío.
 - Para completar: `gh auth refresh -h github.com -s workflow`, luego copiar `exam-template/.github/workflows/ci.yml` al repo (clone, `git add`, commit, `git push origin main`). El push dispara la corrida (esperada: falla por los tests).
 - Nota T4: el bootstrap clona `main` del repo; el branch `session-<id>` se crea desde ahí. Sin workflow en `main`, el CI no corre en los push del alumno hasta completar el pendiente.
+
+## T4 — Proxy git + bootstrap completo
+- Archivos: `backend/.../GitProxyController.java` (proxy smart HTTP con `HttpClient`, Basic `session:<token>`, 401 + `WWW-Authenticate`, inyecta `x-access-token:GITHUB_TOKEN`, evento `GIT_PUSH` tras `git-receive-pack` 200), `runtime/bootstrap.sh` (connect, git config, credential store, clone, `checkout -b`), `scripts/smoke-git.sh`.
+- Verificación: `smoke-git.sh` en WSL → "OK smoke-git": sesión → `docker run` generado → repo en branch `session-1` → commit+push desde el contenedor → branch en GitHub (API) → `GIT_PUSH` en la API → GITHUB_TOKEN ausente de env/credenciales/config del contenedor.
+- **NO verificado: CI se dispara.** `runs=0` porque `ci.yml` no está en `main` del repo de examen (pendiente de T3: token sin scope `workflow`). Cuando se complete T3, los branches nuevos dispararán CI; el branch `session-1` de prueba en GitHub puede borrarse.
+- Desvíos: el smoke consulta GitHub con `curl` + token leído de `.env` (no hay `gh` en WSL). `bootstrap.sh` parsea el JSON de connect con `node`.
