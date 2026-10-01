@@ -47,3 +47,9 @@
 - Verificacion: `smoke-ai.sh` en WSL -> "OK smoke-ai" (respuesta normal "pong", stream SSE con content_block_delta, 401 con token malo, AI_PROMPT/AI_RESPONSE/AI_AUTOCOMPLETE en la API, autocomplete no guarda contenido, config de Continue renderizada en el contenedor). Playwright en `localhost:8080`: panel Continue (v2.0.0, sin login) -> mensaje "Reply with the single word: pong" -> respuesta "pong" via gateway (eventos AI_* de esa sesion confirmados).
 - Desvios/gotchas: (1) code-server arrancaba en Restricted Mode y Continue no se activaba -> `security.workspace.trust.enabled=false` en `~/.local/share/code-server/User/settings.json` (tambien `continue.telemetryEnabled=false`). (2) Continue 2.0.0 manda `thinking.type=enabled`, que claude-sonnet-5-5 rechaza (400) -> el gateway elimina el campo `thinking` antes de reenviar. (3) No hizo falta fijar 1.3.x. (4) `AI_RESPONSE` guarda el texto extraido; si no hay deltas de texto (p.ej. generacion de titulo) guarda el SSE crudo. (5) Autocomplete real no se probo desde la UI (solo por curl con el modelo haiku).
 - Backend reiniciado con el nuevo controller (H2 reseteada); imagen reconstruida.
+
+## T7 — QA end-to-end
+- Recorrido de la DoD §13 con Playwright sobre la UI real (ver `qa-manual-report.md` y `qa-evidence/`): puntos 1, 2, 3, 4, 5 (push) y 6 OK.
+- NO validado: CI se dispara al pushear (punto 5). El repo de examen sigue sin `ci.yml` por el scope `workflow` faltante en el token de gh; el device flow necesita login del usuario en el navegador.
+- Hallazgo: ids de sesión reinician con H2 → colisión con branches viejos `session-<id>` en GitHub (push rechazado). Se borró el branch de prueba y se documentó en README. Sin cambios de código.
+- Entregables: `README.md`, `qa-manual-report.md`. Backend corriendo (H2 limpia) en WSL y imagen `assessment-runtime:poc` construida.
