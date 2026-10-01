@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Calculadora de precios</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 3rem auto; }
+    input, button { font-size: 1.1rem; margin: .25rem 0; }
+    #out { margin-top: 1rem; font-size: 1.4rem; }
+    .error { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Calculadora de precios</h1>
+  <label>Precio base: <input id="price" type="number" value="200"></label><br>
+  <label>Descuento (%): <input id="percent" type="number" value="25"></label><br>
+  <button id="calc">Calcular</button>
+  <div id="out"></div>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
