@@ -21,3 +21,11 @@
 - Desvíos: se usa JdbcTemplate + `schema.sql` en lugar de entidades JPA (más simple). `EventService.record(sessionId, type, payloadJson)` calcula el sequence; `EventService.insert(...)` para telemetría con sequence/timestamp propios. `.env` tiene CRLF: `run-backend.sh` lo filtra con `tr -d '\r'`.
 - Nota: el backend quedó corriendo (setsid, log en `/tmp/backend.log` de WSL). Los ids de sesión son autoincrementales (1, 2…) y las sesiones del smoke quedan en H2 hasta reiniciar.
 - Los endpoints `/api/telemetry/batch`, git proxy, `/ai/**` y `professor.html` NO están (T4–T6).
+
+## T3 — Repo de examen
+
+- `exam-template/`: Spring Boot 3.3.5 / Java 21, `PriceService.applyDiscount` sin implementar, 4 tests (fallan: `./mvnw test` local → 2 failures + 2 errors), `mvnw` generado con `mvn wrapper:wrapper`, `.gitattributes` LF, `ci.yml` (`./mvnw test` en push a cualquier branch).
+- Publicado como repo privado `DaronArg/assessment-exam-template`, branch `main` (se publicó desde una copia temporal; `exam-template/` del monorepo no tiene `.git`).
+- **DESVÍO / PENDIENTE:** el token de `gh` de DaronArg no tiene scope `workflow`, GitHub rechazó el push de `.github/workflows/ci.yml`. El device flow (`gh auth refresh -s workflow`) no fue autorizado a tiempo. El repo se publicó SIN el workflow; `ci.yml` queda en `exam-template/.github/workflows/ci.yml` del monorepo. `gh run list` está vacío.
+- Para completar: `gh auth refresh -h github.com -s workflow`, luego copiar `exam-template/.github/workflows/ci.yml` al repo (clone, `git add`, commit, `git push origin main`). El push dispara la corrida (esperada: falla por los tests).
+- Nota T4: el bootstrap clona `main` del repo; el branch `session-<id>` se crea desde ahí. Sin workflow en `main`, el CI no corre en los push del alumno hasta completar el pendiente.
