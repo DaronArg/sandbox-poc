@@ -14,7 +14,7 @@ R=$(curl -fsS -X POST "$B/api/sessions" -H 'Content-Type: application/json' -d '
 ID=$(echo "$R" | jq -r .sessionId)
 CMD=$(echo "$R" | jq -r .dockerRun)
 TOKEN=$(echo "$CMD" | sed -E 's/.*SESSION_TOKEN=([^ ]+).*/\1/')
-BRANCH="session-$ID"
+BRANCH=$(curl -fsS "$B/api/sessions" | jq -r --argjson id "$ID" '.[]|select(.id==$id)|.branch')
 NAME="assessment-$ID"
 echo "sessionId=$ID branch=$BRANCH"
 

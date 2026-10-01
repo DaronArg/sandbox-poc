@@ -34,7 +34,7 @@ public class TelemetryController {
     public Map<String, Object> batch(@RequestBody Map<String, Object> body,
                                      @RequestHeader(value = "Authorization", required = false) String auth) throws Exception {
         long sessionId = ((Number) body.get("sessionId")).longValue();
-        List<String> tokens = jdbc.queryForList("SELECT token FROM session WHERE id = ?", String.class, sessionId);
+        List<String> tokens = jdbc.queryForList("SELECT token FROM session WHERE id = ? AND status <> 'COMPLETED'", String.class, sessionId);
         if (auth == null || !auth.startsWith("Bearer ") || tokens.isEmpty() || !tokens.get(0).equals(auth.substring(7))) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }

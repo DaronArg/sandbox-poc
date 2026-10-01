@@ -18,7 +18,7 @@ echo "sessionId=$ID"
 echo "== connect con token valido (200)"
 CODE=$(curl -s -o /tmp/connect.json -w '%{http_code}' -X POST "$B/api/sessions/$ID/connect" -H "Authorization: Bearer $TOKEN")
 [ "$CODE" = 200 ] || fail "connect valido dio $CODE"
-jq -e '.branch == "session-'"$ID"'" and .studentName != null' /tmp/connect.json >/dev/null || fail "connect body"
+jq -e '(.branch | test("^session-'"$ID"'-[0-9a-f]{6}$")) and .studentName != null' /tmp/connect.json >/dev/null || fail "connect body"
 cat /tmp/connect.json; echo
 
 echo "== connect con token malo (401)"

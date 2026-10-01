@@ -23,13 +23,13 @@ wsl -d Ubuntu -- bash -lc 'cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/run-
 ```
 
 Queda en foreground; para dejarlo en background agregá `setsid nohup ... > /tmp/backend.log 2>&1 &` dentro del `bash -lc`.
-Health check: http://localhost:9090/api/exams. H2 en memoria: al reiniciar se pierden sesiones y eventos.
+Health check: http://localhost:9090/api/exams. H2 en archivo (`backend/data/`, gitignored): sesiones y eventos sobreviven al reinicio; para empezar de cero, borr� esa carpeta con el backend apagado.
 
 ## 3. Probar
 
 1. Abrí http://localhost:9090, elegí alumno + examen, **Iniciar**.
 2. Copiá el `docker run` que aparece y ejecutalo **en WSL** (`wsl -d Ubuntu`).
-3. Abrí http://localhost:8080: IDE con el repo del examen clonado en el branch `session-<id>`.
+3. Abrí http://localhost:8080: IDE con el repo del examen clonado en el branch `session-<id>-<hex>`.
    - Terminal: `./mvnw test` (los tests fallan a propósito).
    - Panel **Continue** (barra lateral izquierda): el chat responde vía el gateway del backend.
    - `git add/commit/push` desde la terminal: va al backend, que reenvía a GitHub.

@@ -20,10 +20,11 @@ RUN code-server --install-extension vscjava.vscode-java-pack \
 
 USER root
 COPY bootstrap.sh /usr/local/bin/bootstrap.sh
+COPY submit.sh /usr/local/bin/submit
 COPY bash-hook.sh /etc/bash-hook.sh
 COPY telemetry /opt/telemetry
 COPY continue-config.yaml /opt/continue-config.yaml
-RUN chmod +x /usr/local/bin/bootstrap.sh && mkdir -p /workspace && chown coder:coder /workspace  && echo '. /etc/bash-hook.sh' >> /etc/bash.bashrc  && cd /opt/telemetry && npm install --omit=dev --no-audit --no-fund
+RUN chmod +x /usr/local/bin/bootstrap.sh /usr/local/bin/submit && mkdir -p /workspace && chown coder:coder /workspace  && echo '. /etc/bash-hook.sh' >> /etc/bash.bashrc  && cd /opt/telemetry && npm install --omit=dev --no-audit --no-fund
 
 USER coder
 WORKDIR /workspace

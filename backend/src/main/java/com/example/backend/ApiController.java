@@ -41,7 +41,8 @@ public class ApiController {
         jdbc.update("INSERT INTO session (token, student_id, exam_id, branch, status, created_at) VALUES (?,?,?,?,?,?)",
                 token, studentId, examId, "pending", "CREATED", Timestamp.from(Instant.now()));
         long id = jdbc.queryForObject("SELECT MAX(id) FROM session", Long.class);
-        jdbc.update("UPDATE session SET branch = ? WHERE id = ?", "session-" + id, id);
+        String hex = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        jdbc.update("UPDATE session SET branch = ? WHERE id = ?", "session-" + id + "-" + hex, id);
         String dockerRun = "docker run --rm --name assessment-" + id
                 + " -p 127.0.0.1:8080:8080 -p 127.0.0.1:8081:8081 -p 127.0.0.1:4200:4200"
                 + " --add-host=host.docker.internal:host-gateway"
@@ -66,10 +67,21 @@ public class ApiController {
         return result;
     }
 
+    @PostMapping("/sessions/{id}/submit")
+    public Map<String, Object> submit(@PathVariable long id, @RequestBody Map<String, Object> body,
+                                      @RequestHeader(value = "Authorization", required = false) String auth) {
+        authorize(id, auth);
+        String sha = (String) body.get("sha");
+        if (sha == null || sha.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "sha required");
+        jdbc.update("UPDATE session SET final_sha = ?, status = 'COMPLETED' WHERE id = ?", sha, id);
+        events.record(id, "SUBMISSION_COMPLETED", "{\"sha\":\"" + sha.replaceAll("[^0-9a-fA-F]", "") + "\"}");
+        return Map.of("status", "COMPLETED", "finalSha", sha);
+    }
+
     @GetMapping("/sessions")
     public List<Map<String, Object>> sessions() {
         return jdbc.queryForList("""
-                SELECT s.id AS "id", s.status AS "status", s.branch AS "branch", s.created_at AS "createdAt",
+                SELECT s.id AS "id", s.status AS "status", s.branch AS "branch", s.created_at AS "createdAt", s.final_sha AS "finalSha",
                        st.name AS "studentName", e.title AS "examTitle"
                 FROM session s JOIN student st ON st.id = s.student_id JOIN exam e ON e.id = s.exam_id
                 ORDER BY s.id DESC""");
@@ -90,7 +102,7 @@ public class ApiController {
 
     /** Valida "Authorization: Bearer <token>" contra la sesion; 401 si no coincide. */
     private void authorize(long id, String auth) {
-        List<String> tokens = jdbc.queryForList("SELECT token FROM session WHERE id = ?", String.class, id);
+        List<String> tokens = jdbc.queryForList("SELECT token FROM session WHERE id = ? AND status <> 'COMPLETED'", String.class, id);
         if (auth == null || !auth.startsWith("Bearer ") || tokens.isEmpty() || !tokens.get(0).equals(auth.substring(7))) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }

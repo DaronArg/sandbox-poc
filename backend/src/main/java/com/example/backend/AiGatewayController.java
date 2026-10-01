@@ -39,7 +39,7 @@ public class AiGatewayController {
     @PostMapping("/ai/v1/messages")
     public void messages(HttpServletRequest req, HttpServletResponse res) throws Exception {
         String token = req.getHeader("x-api-key");
-        List<Long> ids = token == null ? List.of() : jdbc.queryForList("SELECT id FROM session WHERE token = ?", Long.class, token);
+        List<Long> ids = token == null ? List.of() : jdbc.queryForList("SELECT id FROM session WHERE token = ? AND status <> 'COMPLETED'", Long.class, token);
         if (ids.isEmpty()) {
             res.setStatus(401);
             res.setContentType("application/json");

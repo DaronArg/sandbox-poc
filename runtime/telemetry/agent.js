@@ -63,4 +63,9 @@ async function flush() {
   }
 }
 setInterval(flush, FLUSH_MS);
+
+// El comando submit manda SIGUSR1: flush inmediato y marca /tmp/telemetry/flushed (cuenta tambien los comandos ya logueados)
+process.on('SIGUSR1', async () => {
+  try { await flush(); } finally { fs.writeFileSync('/tmp/telemetry/flushed', String(Date.now())); }
+});
 console.log(`[telemetry] agent started for session ${SESSION_ID}`);

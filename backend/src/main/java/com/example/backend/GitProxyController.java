@@ -78,7 +78,7 @@ public class GitProxyController {
         }
         int i = decoded.indexOf(':');
         if (i < 0) return false;
-        List<String> tokens = jdbc.queryForList("SELECT token FROM session WHERE id = ?", String.class, id);
+        List<String> tokens = jdbc.queryForList("SELECT token FROM session WHERE id = ? AND status <> 'COMPLETED'", String.class, id);
         return !tokens.isEmpty() && tokens.get(0).equals(decoded.substring(i + 1));
     }
 }
