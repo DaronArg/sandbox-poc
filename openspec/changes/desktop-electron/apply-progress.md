@@ -64,3 +64,14 @@ La máquina donde se aplicó la spec NO coincide con lo que asumen los docs prev
   Capturas en `qa-evidence/e5-*.png` (por vista, vía CDP: no se captura el escritorio real).
 - Riesgo §10 HMR: **NO se confirmó**; Vite recarga la pestaña App detrás del gate sin plan B (`GATE_PORT`/`clientPort` no hacen falta).
 - Detalle: en ese recorrido la calculadora muestra "Error: Unexpected end of JSON input" porque `spring-boot:run` no estaba levantado (el proxy de Vite devuelve vacío); con la API arriba responde 500 hasta que se implemente `applyDiscount` (esperado, ver E3).
+
+## E6 — Lockdown, telemetría desktop y profesor
+- `security.ts` (menú nulo, `will-navigate`/`will-redirect` solo al origen registrado de cada vista, `setWindowOpenHandler` deny, `before-input-event` F12/Ctrl+Shift+I/J/C/Ctrl+U, `will-download` cancelado, permisos solo `clipboard-*` para `ide.localhost`, `devtools-opened` cierra, `devTools:false`), validación del `senderFrame` en cada IPC, single-instance, `telemetry.ts` con los 5 eventos `DESKTOP_*` (cola en memoria, flush cada 10 s y en el cierre), `professor.html` con tiempo fuera, salidas, bloqueos y filas resaltadas.
+- Verificación (`node desktop/e2e/e6-check.js` + `professor-check.js`, app real, sesión 31):
+  - Título fijo de la ventana; F12, Ctrl+Shift+I, Ctrl+Shift+J y Ctrl+U enviadas como teclas REALES de Windows (SendKeys, solo si la app tiene el foco: si no, se aborta antes de mandar nada) → no aparece ningún target de DevTools ni ventana nueva.
+  - `window.open`, link con `target=_blank`, link normal y `location.href` hacia `https://example.com` desde el IDE → no abren nada; el IDE sigue en `ide.localhost`; ninguna página nueva.
+  - Segunda instancia → termina sola (código 0); una sola ventana.
+  - Alt+Tab real ida y vuelta (SendKeys `%{TAB}`) + cambio de pestaña → API: `DESKTOP_STARTED {version:0.1.0, resumed:false}`, `DESKTOP_FOCUS_LOST`, `DESKTOP_FOCUS_GAINED {awayMs:5583}`, `DESKTOP_TAB_CHANGED {tab:APP}`, `DESKTOP_CLOSED` al salir.
+  - **Edge headless real** a `localhost:<P>`, `ide.localhost:<P>`, `app.localhost:<P>` → "Acceso denegado"; a `localhost:8081/api/price` → "Solo Postman/curl". 4 `GATE_ACCESS_DENIED` en la timeline. `curl.exe` (sin headers de navegador) a :8081 no queda bloqueado (502: la API del alumno estaba apagada en ese contenedor).
+  - `professor.html` (Playwright, Edge): fuera de la app `0 min 6 s`, `1` salida, `4` bloqueos; 2 filas `focus` y 4 `denied` resaltadas. Captura `qa-evidence/e6-professor.png`; capturas de Edge `qa-evidence/e6-edge-*.png`.
+- Detalles/desvíos: `GATE_ACCESS_DENIED`, `DESKTOP_*` y los eventos del agente comparten espacio de `sequence` por sesión pero cada emisor asigna el suyo (el agente desde `NEXT_SEQUENCE`), así que pueden repetirse números; la vista del profesor ordena por timestamp. La verificación de Alt+Tab no registra el título de la otra ventana (privacidad).

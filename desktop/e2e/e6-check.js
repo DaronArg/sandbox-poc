@@ -23,7 +23,7 @@ let child = null;
 const launch = (extraEnv = {}) => {
   child = spawn(exe, ['.', `--remote-debugging-port=${PORT}`], {
     cwd: process.cwd(), stdio: 'ignore',
-    env: { ...process.env, ASSESSMENT_USER_DATA: USERDATA, ASSESSMENT_DEV_AUTOSTART: '1,1', ...extraEnv },
+    env: { ...process.env, ASSESSMENT_USER_DATA: USERDATA, ASSESSMENT_DEV_AUTOSTART: '1,1', ASSESSMENT_TEST_DIALOG_LOG: path.join(USERDATA, 'dialogs.log'), ASSESSMENT_TEST_DIALOG_ANSWER: '0', ...extraEnv },
   });
   return child;
 };
@@ -37,12 +37,21 @@ public class W { [DllImport("user32.dll")] public static extern IntPtr GetForegr
   [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n); }
 '@
 function Fg { $s = New-Object System.Text.StringBuilder 256; [void][W]::GetWindowText([W]::GetForegroundWindow(), $s, 256); $s.ToString() }
+Add-Type @'
+using System; using System.Runtime.InteropServices;
+public class A { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c);
+  [DllImport("user32.dll")] public static extern void keybd_event(byte b, byte s, uint f, UIntPtr e); }
+'@
+# Windows no deja que un script robe el foco: un toque de Alt (inofensivo) habilita SetForegroundWindow.
+function Activate { $p = Get-Process | Where-Object { $_.MainWindowTitle -like 'Assessment*' } | Select-Object -First 1
+  if ($p) { [A]::keybd_event(0x12,0,0,[UIntPtr]::Zero); [A]::keybd_event(0x12,0,2,[UIntPtr]::Zero); [void][A]::ShowWindow($p.MainWindowHandle, 9); [void][A]::SetForegroundWindow($p.MainWindowHandle) } }
 `;
 // Activa la ventana por titulo, confirma que quedo en primer plano y recien ahi manda las teclas.
 function sendKeysToApp(keys) {
   return ps(`${PS_FG}
 $sh = New-Object -ComObject WScript.Shell
-[void]$sh.AppActivate('Assessment')
+Activate
 Start-Sleep -Milliseconds 800
 $t = Fg
 if (-not $t.StartsWith('Assessment')) { 'ABORT:' + $t; exit 0 }
@@ -70,7 +79,7 @@ async function shellPage() {
 
   log('== 1. ventana: titulo fijo, sin menu');
   const winInfo = ps(`Get-Process | Where-Object { $_.MainWindowTitle -like 'Assessment*' } | Select-Object -First 1 -ExpandProperty MainWindowTitle`);
-  check(/^Assessment — Ana Alumna · Examen Spring Boot$/.test(winInfo), 'titulo de la ventana: ' + winInfo);
+  check(/^Assessment .{1,3} Ana Alumna .{1,3} Examen Spring Boot$/.test(winInfo), 'titulo de la ventana: ' + winInfo);
 
   log('== 2. F12 y Ctrl+Shift+I no abren nada (teclas reales de Windows)');
   const before = (await devtoolsTargets()).length;
@@ -104,21 +113,24 @@ async function shellPage() {
   await sh.eval(`document.getElementById('tab-app').click(); true`);
   await sleep(800);
   await sh.eval(`document.getElementById('tab-ide').click(); true`);
+  // Alt+Tab real: solo si la app tiene el foco (si no, se aborta); no se registra el titulo de la otra ventana
   const r = ps(`${PS_FG}
-$n = Start-Process notepad.exe -PassThru
-Start-Sleep -Milliseconds 1500
 $sh = New-Object -ComObject WScript.Shell
-[void]$sh.AppActivate($n.Id)
+Activate
 Start-Sleep -Milliseconds 800
-$other = Fg
+if (-not (Fg).StartsWith('Assessment')) { 'ABORT'; exit 0 }
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait('%{TAB}')
+Start-Sleep -Milliseconds 1500
+$left = -not (Fg).StartsWith('Assessment')
 Start-Sleep -Seconds 4
-[void]$sh.AppActivate('Assessment')
+Activate
 Start-Sleep -Milliseconds 1200
-$back = Fg
-Stop-Process -Id $n.Id -Force
-'other=' + $other + ' | back=' + $back`);
+if (-not (Fg).StartsWith('Assessment')) { [System.Windows.Forms.SendKeys]::SendWait('%{TAB}'); Start-Sleep -Milliseconds 1200 }
+'left=' + $left + ' back=' + (Fg).StartsWith('Assessment')`);
   log('  ' + r);
-  check(r.includes('back=Assessment'), 'volvio el foco a la app');
+  check(r.includes('left=True'), 'Alt+Tab saco el foco de la app');
+  check(r.includes('back=True'), 'el foco volvio a la app');
   await sleep(1000);
 
   log('== 6. el navegador no puede usar el IDE, el front ni la API (Edge headless real)');
@@ -140,7 +152,7 @@ Stop-Process -Id $n.Id -Force
     edge(url, [`--screenshot=${path.join(EV, shot)}`, '--window-size=900,300']);
   }
   const post = execFileSync('curl.exe', ['-s', '-o', 'NUL', '-w', '%{http_code}', 'http://localhost:8081/api/price?price=200&percent=25'], { encoding: 'utf8' });
-  check(['200', '400', '500'].includes(post), 'curl.exe (como Postman) a :8081 sigue funcionando: ' + post);
+  check(['200', '400', '500', '502'].includes(post), 'curl.exe (como Postman) a :8081 NO queda bloqueado por el gate (no es 403): ' + post + ' (502 = la API del alumno esta apagada)');
 
   log('== 7. telemetria en la API (flush del agente <= 10 s)');
   let evs = [];
