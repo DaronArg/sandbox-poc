@@ -1,0 +1,12 @@
+{
+  "name": "assessment-demo-recorder",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "record": "node record-demo.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}

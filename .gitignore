@@ -3,3 +3,7 @@
 target/
 node_modules/
 .playwright-mcp/
+
+# demo
+demo/output/
+demo/node_modules/
