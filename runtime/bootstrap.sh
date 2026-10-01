@@ -32,4 +32,7 @@ else
   echo "[bootstrap] /workspace already has a repo, leaving it untouched"
 fi
 
+echo "[bootstrap] starting telemetry agent"
+node /opt/telemetry/agent.js >> /tmp/telemetry-agent.log 2>&1 &
+
 exec code-server --auth none --bind-addr 0.0.0.0:8080 /workspace
