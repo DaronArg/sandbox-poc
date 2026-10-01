@@ -30,3 +30,11 @@
   2. `wsl -d Ubuntu -- bash -lc "cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/publish-runtime.sh"`
   3. Agregar `RUNTIME_IMAGE=ghcr.io/daronarg/assessment-runtime:poc` a `.env`; reiniciar backend.
   4. Verificar: `docker rmi ghcr.io/daronarg/assessment-runtime:poc assessment-runtime:poc`; `time docker pull ghcr.io/daronarg/assessment-runtime:poc` (login previo); `docker manifest inspect`/`docker images` para tamano; `docker tag ghcr.io/daronarg/assessment-runtime:poc assessment-runtime:poc` y `./scripts/smoke-git.sh` (o con RUNTIME_IMAGE de GHCR). Confirmar paquete privado en github.com/users/DaronArg/packages.
+
+## C5 — Camino remoto por tunel HTTPS (hecho)
+- `PUBLIC_URL` en `ApiController`: si esta definida, el `docker run` usa `BACKEND_URL=$PUBLIC_URL` (sin `/` final) y no agrega `--add-host`.
+- Bug real arreglado: `runtime/bootstrap.sh` escribia `.git-credentials` siempre como `http://`; ahora usa el esquema de `BACKEND_URL` (https por el tunel). Imagen reconstruida.
+- `scripts/tunnel.sh up|down|status` (cloudflared instalado en `/usr/local/bin` de WSL, v2026.9.3). Gotcha: en esta maquina QUIC (UDP 7844) falla y el tunel moria al instante; se fuerza `--protocol http2`. La URL queda en `/tmp/tunnel.url` (no se commitea ni se imprime en los smokes).
+- Verificacion: `scripts/smoke-remote.sh` -> "OK smoke-remote": docker run sin `--add-host` ni `host.docker.internal`; connect (ACTIVE), clone y checkout del branch, FILE_CREATED visible en la API, IA normal y streaming (SSE) desde el contenedor, push a GitHub, submit COMPLETED con final_sha = HEAD, todo solo por la URL publica. Cleanup del script: borra branch, contenedor, volumen, baja el tunel y reinicia el backend sin `PUBLIC_URL`.
+- Estado final verificado: sin proceso `cloudflared`, sin `/tmp/tunnel.url`, backend arriba con `PUBLIC_URL` vacia, sin contenedores. Regresion: smoke-git OK.
+- Para usarlo a mano: `./scripts/tunnel.sh up`, `PUBLIC_URL=<url> ./scripts/run-backend.sh`, y al terminar `./scripts/tunnel.sh down` + reiniciar el backend sin `PUBLIC_URL`.

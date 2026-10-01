@@ -23,7 +23,7 @@ git config --global user.name "$STUDENT_NAME"
 git config --global user.email "$STUDENT_EMAIL"
 git config --global credential.helper store
 HOSTPORT="${BACKEND_URL#*://}"
-echo "http://session:${SESSION_TOKEN}@${HOSTPORT}" > "$HOME/.git-credentials"
+echo "${BACKEND_URL%%://*}://session:${SESSION_TOKEN}@${HOSTPORT}" > "$HOME/.git-credentials"
 chmod 600 "$HOME/.git-credentials"
 
 if [ ! -d /workspace/.git ]; then

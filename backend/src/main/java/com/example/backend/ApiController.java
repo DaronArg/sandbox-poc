@@ -52,11 +52,13 @@ public class ApiController {
         long id = jdbc.queryForObject("SELECT MAX(id) FROM session", Long.class);
         String hex = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
         jdbc.update("UPDATE session SET branch = ? WHERE id = ?", "session-" + id + "-" + hex, id);
+        String publicUrl = env("PUBLIC_URL", "");
+        boolean remote = !publicUrl.isBlank();
         String dockerRun = "docker run --rm --name assessment-" + id
                 + " -p 127.0.0.1:8080:8080 -p 127.0.0.1:8081:8081 -p 127.0.0.1:4200:4200"
-                + " --add-host=host.docker.internal:host-gateway"
+                + (remote ? "" : " --add-host=host.docker.internal:host-gateway")
                 + " -e SESSION_ID=" + id + " -e SESSION_TOKEN=" + token
-                + " -e BACKEND_URL=http://host.docker.internal:9090"
+                + " -e BACKEND_URL=" + (remote ? publicUrl.replaceAll("/+$", "") : "http://host.docker.internal:9090")
                 + " -v assessment_" + id + "_workspace:/workspace"
                 + " " + env("RUNTIME_IMAGE", "ghcr.io/daronarg/assessment-runtime:poc");
         return Map.of("sessionId", id, "dockerRun", dockerRun);
