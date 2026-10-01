@@ -5,6 +5,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -76,6 +85,44 @@ public class ApiController {
         jdbc.update("UPDATE session SET final_sha = ?, status = 'COMPLETED' WHERE id = ?", sha, id);
         events.record(id, "SUBMISSION_COMPLETED", "{\"sha\":\"" + sha.replaceAll("[^0-9a-fA-F]", "") + "\"}");
         return Map.of("status", "COMPLETED", "finalSha", sha);
+    }
+
+    /** Resultado del CI en GitHub para el SHA final (o el branch si no hubo submit). Consulta bajo demanda. */
+    @GetMapping("/sessions/{id}/result")
+    public Map<String, Object> result(@PathVariable long id) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT status AS \"status\", branch AS \"branch\", final_sha AS \"finalSha\" FROM session WHERE id = ?", id);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        String sha = (String) rows.get(0).get("finalSha");
+        String branch = (String) rows.get(0).get("branch");
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("status", rows.get(0).get("status"));
+        out.put("finalSha", sha);
+        out.put("ciStatus", "none");
+        out.put("ciConclusion", null);
+        out.put("ciUrl", null);
+        try {
+            String q = sha != null ? "head_sha=" + sha : "branch=" + URLEncoder.encode(branch, StandardCharsets.UTF_8);
+            HttpRequest req = HttpRequest.newBuilder(URI.create("https://api.github.com/repos/" + System.getenv("GITHUB_REPO")
+                            + "/actions/runs?per_page=1&" + q))
+                    .header("Authorization", "Bearer " + System.getenv("GITHUB_TOKEN"))
+                    .header("Accept", "application/vnd.github+json").GET().build();
+            HttpResponse<String> res = HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() != 200) {
+                out.put("ciStatus", "unknown");
+            } else {
+                JsonNode runs = new ObjectMapper().readTree(res.body()).path("workflow_runs");
+                if (runs.size() > 0) {
+                    JsonNode run = runs.get(0);
+                    out.put("ciStatus", run.path("status").asText(null));
+                    out.put("ciConclusion", run.path("conclusion").isNull() ? null : run.path("conclusion").asText(null));
+                    out.put("ciUrl", run.path("html_url").asText(null));
+                }
+            }
+        } catch (Exception e) {
+            out.put("ciStatus", "unknown");
+        }
+        return out;
     }
 
     @GetMapping("/sessions")

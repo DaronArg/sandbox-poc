@@ -22,6 +22,7 @@
   </div>
   <div>
     <h2>Timeline <span id="title"></span></h2>
+    <div id="result"></div>
     <p id="actions"></p>
     <table id="timeline"><thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Detalle</th></tr></thead><tbody></tbody></table>
   </div>
@@ -35,6 +36,16 @@ async function loadSessions() {
   document.querySelector('#sessions tbody').innerHTML = list.map((s) =>
     `<tr data-id="${s.id}" data-branch="${esc(s.branch)}" class="${s.id === current ? 'sel' : ''}">` +
     `<td>${s.id}</td><td>${esc(s.studentName)}</td><td>${esc(s.examTitle)}</td><td>${esc(s.status)}</td><td>${esc(s.branch)}</td></tr>`).join('');
+}
+
+async function loadResult() {
+  if (current == null) return;
+  const r = await (await fetch(`/api/sessions/${current}/result`)).json();
+  const link = r.ciUrl ? ` <a id="ci-link" target="_blank" href="${esc(r.ciUrl)}">ver corrida</a>` : '';
+  document.getElementById('result').innerHTML =
+    `<table><tr><th>Estado</th><td id="r-status">${esc(r.status)}</td></tr>` +
+    `<tr><th>SHA final</th><td id="r-sha"><code>${esc(r.finalSha ?? '-')}</code></td></tr>` +
+    `<tr><th>CI</th><td id="r-ci">${esc(r.ciStatus)} / ${esc(r.ciConclusion ?? '-')}${link}</td></tr></table>`;
 }
 
 async function loadTimeline() {
@@ -56,11 +67,11 @@ document.querySelector('#sessions tbody').addEventListener('click', (ev) => {
     document.getElementById('actions').innerHTML =
       `<a target="_blank" href="https://github.com/${esc(c.repo)}/actions?query=branch%3A${encodeURIComponent(tr.dataset.branch)}">GitHub Actions del branch ${esc(tr.dataset.branch)}</a>`;
   });
-  loadSessions(); loadTimeline();
+  loadSessions(); loadTimeline(); loadResult();
 });
 
 loadSessions();
-setInterval(() => { loadSessions(); loadTimeline(); }, 5000);
+setInterval(() => { loadSessions(); loadTimeline(); loadResult(); }, 5000);
 </script>
 </body>
 </html>
