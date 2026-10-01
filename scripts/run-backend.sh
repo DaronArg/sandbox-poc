@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 if [ -f "$ROOT/.env" ]; then
   set -a
   # shellcheck disable=SC1091
-  . "$ROOT/.env"
+  . <(tr -d '\r' < "$ROOT/.env")
   set +a
 fi
 cd "$ROOT/backend"

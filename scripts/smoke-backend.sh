@@ -30,7 +30,9 @@ CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B/api/sessions/99999/con
 [ "$CODE" = 401 ] || fail "sesion inexistente dio $CODE"
 
 echo "== events contiene SESSION_STARTED"
-curl -fsS "$B/api/sessions/$ID/events" | tee /dev/stderr | jq -e 'map(.type) | index("SESSION_STARTED")' >/dev/null || fail "SESSION_STARTED"
+EV=$(curl -fsS "$B/api/sessions/$ID/events")
+echo "$EV"
+echo "$EV" | jq -e 'map(.type) | index("SESSION_STARTED")' >/dev/null || fail "SESSION_STARTED"
 
 echo "== pagina /"
 curl -fsS "$B/" | grep -q "Iniciar" || fail "index.html"

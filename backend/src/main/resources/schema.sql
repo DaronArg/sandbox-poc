@@ -1,0 +1,8 @@
+CREATE TABLE student (id BIGINT PRIMARY KEY, name VARCHAR(100), email VARCHAR(100));
+CREATE TABLE exam (id BIGINT PRIMARY KEY, title VARCHAR(200), description VARCHAR(1000));
+CREATE TABLE session (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, token VARCHAR(64), student_id BIGINT, exam_id BIGINT,
+  branch VARCHAR(100), status VARCHAR(20), created_at TIMESTAMP);
+CREATE TABLE event (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY, session_id BIGINT, sequence BIGINT, type VARCHAR(50),
+  timestamp TIMESTAMP, payload CLOB);

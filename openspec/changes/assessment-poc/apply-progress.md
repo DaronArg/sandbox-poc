@@ -14,3 +14,10 @@
 - Desvíos: JDK 21 vía tarball Temurin (Adoptium API) porque Debian no trae openjdk-21; Maven por apt; Node 22 por NodeSource. Usuario del contenedor: `coder`.
 - Aviso para T6: Open VSX instaló `Continue.continue` v2.0.0 (no 1.3.x). Verificar que no pida login; si lo pide, fijar versión con `--install-extension Continue.continue@<ver>`.
 - `/healthz` de code-server devuelve `status: expired` sin clientes conectados; es normal, HTTP 200.
+
+## T2 — Backend base
+- Archivos: `backend/` (pom Spring Boot 3.3.5, Java 21, mvnw generado con `mvn wrapper:wrapper`, `ApiController`, `EventService`, `schema.sql`, `data.sql`, `static/index.html`), `scripts/run-backend.sh`, `scripts/smoke-backend.sh`.
+- Verificación: backend corriendo en WSL (:9090); `smoke-backend.sh` → "OK smoke-backend" (crear sesión, connect 200, token malo 401, sesión inexistente 401, events con SESSION_STARTED, página `/`). Desde Windows `localhost:9090/` → 200.
+- Desvíos: se usa JdbcTemplate + `schema.sql` en lugar de entidades JPA (más simple). `EventService.record(sessionId, type, payloadJson)` calcula el sequence; `EventService.insert(...)` para telemetría con sequence/timestamp propios. `.env` tiene CRLF: `run-backend.sh` lo filtra con `tr -d '\r'`.
+- Nota: el backend quedó corriendo (setsid, log en `/tmp/backend.log` de WSL). Los ids de sesión son autoincrementales (1, 2…) y las sesiones del smoke quedan en H2 hasta reiniciar.
+- Los endpoints `/api/telemetry/batch`, git proxy, `/ai/**` y `professor.html` NO están (T4–T6).
