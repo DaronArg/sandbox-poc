@@ -16,3 +16,14 @@ La máquina donde se aplicó la spec NO coincide con lo que asumen los docs prev
 - Decisión: el 426 se resuelve con un `@ExceptionHandler` propio (JSON); la versión se chequea antes que el token en `status`.
 - Se agregó `scripts/restart-backend.sh` (lo usa `smoke-backend.sh` para el paso de reinicio).
 - Verificación: `scripts/smoke-backend.sh` en WSL → `OK smoke-backend` (incluye reinicio real del backend con sesión y eventos conservados).
+
+## E2 — Runtime con gate
+- `runtime/gate/` (gate.js + http-proxy 1.18.1), `bootstrap.sh` (root) + `session.sh` (coder), Dockerfile (sin sudo, usuario `gate`, REST Client, `USER root`), agente con `NEXT_SEQUENCE`, tail de `denied.log` (lectura desde el inicio del archivo, el contenedor es nuevo por sesión) y flush en SIGTERM. Imagen reconstruida.
+- **Upstream git local (desvío por entorno):** sin acceso a GitHub (§Entorno). Se agregó `GIT_UPSTREAM_BASE` (env opcional del backend, default `https://github.com`) y `scripts/local-upstream.sh` + `local-git-upstream.js` (git smart HTTP vía `git http-backend`, sembrado desde `exam-template/` en `/tmp/upstream`). `run-backend.sh` exporta `GIT_UPSTREAM_BASE` solo si existe `/tmp/upstream/.active`. `lib-session.sh` lo levanta solo cuando `.env` no tiene `GITHUB_TOKEN`. Con token real el flujo es el de siempre contra GitHub.
+- `scripts/lib-session.sh` (start_session/wait_ide/stop_session) con el `docker run` exacto de §6.4 (sin shell: argumentos), usado por `smoke-gate/git/telemetry/ai`. `scripts/smoke-all.sh` corre la tanda.
+- `smoke-gate.sh`: los 9 puntos de §12 pasan. Desvíos menores: (4) la API del alumno con `applyDiscount` sin implementar responde 500 (no 200): se verifica que el gate llega a Spring (JSON de Spring, no del gate); (5) el upstream de prueba es un servidor `node` en :4200 en vez de `nc` (la imagen no trae netcat); (9) `curl.exe` se invoca desde WSL por interop (`/mnt/c/Windows/System32/curl.exe`).
+- Riesgo §10 "reenvío de localhost de WSL no lleva el puerto dinámico a Windows": **NO se confirmó**; `curl.exe` desde Windows llegó a `127.0.0.1:<P aleatorio>` (403 sin cookie, 200 con cookie). No hace falta el plan B (puerto fijo).
+- Riesgo §10 "code-server rechaza WebSocket por Origin/Host": a nivel curl el upgrade con cookie y `Origin: http://ide.localhost:<P>` da 101. Se confirma de verdad con el IDE real en E4.
+- `smoke-ai.sh`: **parcial**, no hay `ANTHROPIC_API_KEY`. Se verifican 401 con token inválido y la config de Continue renderizada; no-stream/stream/eventos AI_*/autocomplete quedan SKIPPED y sin verificar.
+- `smoke-git.sh`: verificado contra el upstream LOCAL; GitHub real y CI **sin verificar**.
+- Verificación: `smoke-gate`, `smoke-runtime`, `smoke-git`, `smoke-telemetry`, `smoke-backend` OK; `smoke-ai` parcial.

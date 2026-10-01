@@ -8,5 +8,6 @@ if [ -f "$ROOT/.env" ]; then
   . <(tr -d '\r' < "$ROOT/.env")
   set +a
 fi
+[ -f /tmp/upstream/.active ] && export GIT_UPSTREAM_BASE=http://localhost:9418
 cd "$ROOT/backend"
 exec ./mvnw spring-boot:run

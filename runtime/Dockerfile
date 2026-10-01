@@ -16,16 +16,27 @@ ENV JAVA_HOME=/opt/jdk
 
 USER coder
 RUN code-server --install-extension vscjava.vscode-java-pack \
- && code-server --install-extension Continue.continue
+ && code-server --install-extension Continue.continue \
+ && code-server --install-extension humao.rest-client
 
 USER root
+# El alumno (coder) no debe poder escalar a root: sin sudo, y el gate corre con otro usuario.
+RUN rm -f /etc/sudoers.d/nopasswd \
+ && useradd --system --no-create-home --shell /usr/sbin/nologin gate
 COPY bootstrap.sh /usr/local/bin/bootstrap.sh
+COPY session.sh /usr/local/bin/session.sh
 COPY bash-hook.sh /etc/bash-hook.sh
 COPY telemetry /opt/telemetry
+COPY gate /opt/gate
 COPY continue-config.yaml /opt/continue-config.yaml
-RUN chmod +x /usr/local/bin/bootstrap.sh && mkdir -p /workspace && chown coder:coder /workspace  && echo '. /etc/bash-hook.sh' >> /etc/bash.bashrc  && cd /opt/telemetry && npm install --omit=dev --no-audit --no-fund
+RUN chmod +x /usr/local/bin/bootstrap.sh /usr/local/bin/session.sh \
+ && mkdir -p /workspace && chown coder:coder /workspace \
+ && echo '. /etc/bash-hook.sh' >> /etc/bash.bashrc \
+ && cd /opt/telemetry && npm install --omit=dev --no-audit --no-fund \
+ && cd /opt/gate && npm install --omit=dev --no-audit --no-fund
 
-USER coder
+# El entrypoint corre como root y baja privilegios (gate / coder).
+USER root
 WORKDIR /workspace
-EXPOSE 8080 8081 4200
+EXPOSE 7000 9081
 ENTRYPOINT ["/usr/local/bin/bootstrap.sh"]

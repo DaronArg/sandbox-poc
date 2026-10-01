@@ -1,36 +1,19 @@
 #!/usr/bin/env bash
-# Smoke T5: crear/modificar archivo + comando en bash interactivo -> eventos en la API en < 30 s.
-# Requiere backend en :9090 (reiniciado con TelemetryController) y la imagen assessment-runtime:poc. Correr dentro de WSL.
+# Smoke telemetria: crear/modificar archivo + comando en bash interactivo -> eventos en la API en < 30 s.
+# Requiere backend en :9090 y la imagen assessment-runtime:poc. Correr dentro de WSL.
 set -euo pipefail
-B="${BACKEND:-http://localhost:9090}"
-fail() { echo "FAIL: $*"; exit 1; }
+source "$(dirname "$0")/lib-session.sh"
 
-echo "== crear sesion"
-R=$(curl -fsS -X POST "$B/api/sessions" -H 'Content-Type: application/json' -d '{"studentId":1,"examId":1}')
-ID=$(echo "$R" | jq -r .sessionId)
-CMD=$(echo "$R" | jq -r .dockerRun)
-NAME="assessment-$ID"
-echo "sessionId=$ID"
-
-docker ps -aq -f name=assessment- | xargs -r docker rm -f >/dev/null 2>&1 || true
-docker volume rm "assessment_${ID}_workspace" >/dev/null 2>&1 || true
-eval "${CMD/docker run --rm/docker run -d --rm}" >/dev/null
-cleanup() { docker rm -f "$NAME" >/dev/null 2>&1 || true; docker volume rm "assessment_${ID}_workspace" >/dev/null 2>&1 || true; }
-trap cleanup EXIT
-
-echo "== esperar code-server"
-for i in $(seq 1 60); do
-  curl -fsS -o /dev/null http://localhost:8080/healthz 2>/dev/null && break
-  docker ps -q -f "name=$NAME" | grep -q . || { docker logs "$NAME" 2>&1 | tail -20; fail "el contenedor murio"; }
-  sleep 2
-done
+echo "== crear sesion y levantar contenedor"
+start_session 1
+wait_ide
 sleep 3 # que el watcher termine el scan inicial
 
 echo "== crear y modificar archivo + comando en bash interactivo"
-docker exec "$NAME" bash -c 'echo uno > /workspace/telemetry-test.txt'
+docker exec -u coder "$NAME" bash -c 'echo uno > /workspace/telemetry-test.txt'
 sleep 2
-docker exec "$NAME" bash -c 'echo dos >> /workspace/telemetry-test.txt'
-docker exec -i "$NAME" bash -i <<'SH' >/dev/null 2>&1 || true
+docker exec -u coder "$NAME" bash -c 'echo dos >> /workspace/telemetry-test.txt'
+docker exec -u coder -i "$NAME" bash -i <<'SH' >/dev/null 2>&1 || true
 echo hola-telemetria
 false
 exit
@@ -51,10 +34,22 @@ for i in $(seq 1 15); do
   sleep 2
 done
 echo "$EV" | jq -r '.[] | "\(.sequence)\t\(.type)\t\(.payload)"'
-[ "$OK" = 1 ] || fail "no llegaron todos los eventos en 30 s"
+[ "$OK" = 1 ] || sfail "no llegaron todos los eventos en 30 s"
+
+echo "== el agente arranca en NEXT_SEQUENCE: ninguna secuencia del agente repite la de SESSION_STARTED"
+echo "$EV" | jq -e '[.[] | select(.type=="SESSION_STARTED")][0].sequence as $s | [.[] | select(.type|test("^(FILE_|COMMAND_)"))] | all(.sequence > $s)' >/dev/null || sfail "sequence del agente <= SESSION_STARTED"
+
+echo "== flush en SIGTERM: evento reciente llega sin esperar el ciclo de 10 s"
+docker exec -u coder "$NAME" bash -c 'echo sigterm > /workspace/sigterm-test.txt'
+sleep 2
+docker exec -u root "$NAME" pkill -TERM -f telemetry/agent.js
+sleep 3
+curl -fsS "$B/api/sessions/$ID/events" | jq -e 'any(.[]; .type=="FILE_CREATED" and (.payload|contains("sigterm-test.txt")))' >/dev/null || sfail "no hubo flush al recibir SIGTERM"
+docker exec "$NAME" pgrep -f telemetry/agent.js >/dev/null && sfail "el agente sigue vivo tras SIGTERM"
+echo "  ok  agente termino con exit 0 tras flush"
 
 echo "== professor.html y config"
-curl -fsS "$B/professor.html" | grep -q "Timeline" || fail "professor.html"
-curl -fsS "$B/api/professor-config" | jq -e '.repo' >/dev/null || fail "professor-config"
+curl -fsS "$B/professor.html" | grep -q "Timeline" || sfail "professor.html"
+curl -fsS "$B/api/professor-config" | jq -e '.repo' >/dev/null || sfail "professor-config"
 echo "SESSION_ID=$ID (professor.html: $B/professor.html)"
 echo "OK smoke-telemetry"
