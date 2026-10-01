@@ -1,0 +1,5 @@
+### Calcular un precio con descuento (REST Client de VS Code: "Send Request")
+GET http://localhost:8081/api/price?price=200&percent=25
+
+### Porcentaje fuera de rango (debe responder 400 cuando applyDiscount este implementado)
+GET http://localhost:8081/api/price?price=200&percent=150

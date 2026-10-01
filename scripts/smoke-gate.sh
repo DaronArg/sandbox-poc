@@ -96,7 +96,7 @@ echo "  ok  GATE_ACCESS_DENIED visibles en /api/sessions/$ID/events"
 
 echo "== 9. desde Windows (curl.exe por el reenvio de localhost de WSL)"
 if [ -x "$CURL_WIN" ]; then
-  wcode() { "$CURL_WIN" -s -o /dev/null -w '%{http_code}' --max-time 10 "$@"; }
+  wcode() { "$CURL_WIN" -s -o NUL -w '%{http_code}' --max-time 10 "$@"; }
   expect "$(wcode --resolve ide.localhost:$PORT:127.0.0.1 "http://$IDE/")" 403 "win: ide.localhost sin cookie"
   expect "$(wcode "http://127.0.0.1:$PORT/")" 403 "win: 127.0.0.1 sin cookie"
   expect "$(wcode --resolve ide.localhost:$PORT:127.0.0.1 -H "$CK" "http://$IDE/healthz")" 200 "win: ide.localhost/healthz con cookie"

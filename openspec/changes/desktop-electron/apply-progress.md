@@ -27,3 +27,9 @@ La máquina donde se aplicó la spec NO coincide con lo que asumen los docs prev
 - `smoke-ai.sh`: **parcial**, no hay `ANTHROPIC_API_KEY`. Se verifican 401 con token inválido y la config de Continue renderizada; no-stream/stream/eventos AI_*/autocomplete quedan SKIPPED y sin verificar.
 - `smoke-git.sh`: verificado contra el upstream LOCAL; GitHub real y CI **sin verificar**.
 - Verificación: `smoke-gate`, `smoke-runtime`, `smoke-git`, `smoke-telemetry`, `smoke-backend` OK; `smoke-ai` parcial.
+
+## E3 — Repo de examen
+- `exam-template/`: `frontend/main.js` con `API = ''`, `vite.config.js` con proxy `/api` → `127.0.0.1:8081`, `PriceController` sin `@CrossOrigin`, `requests.http` y `README.md` nuevos. `PriceService.applyDiscount` y los 4 tests siguen fallando a propósito.
+- **No se publicó en `main` de `DaronArg/assessment-exam-template`:** no hay acceso (ver Entorno). El espejo `exam-template/` queda listo y el upstream local se siembra desde él.
+- `scripts/smoke-exam.sh` (nuevo) en un contenedor de sesión con gate: el clone trae los cambios; `./mvnw test` → `Tests run: 4, Failures: 2, Errors: 2`; `spring-boot:run` + `npm run dev`; `app.localhost:<P>/` → 200 con el HTML del front; `app.localhost:<P>/api/price?price=200&percent=25` → 500 JSON de Spring (esperado: `applyDiscount` sin implementar, anotado como pide la task); `curl.exe` desde Windows a `localhost:8081/api/price...` → 500 (mismo código, responde Spring). Nota: `curl.exe` necesita `-o NUL` (con `/dev/null` falla la escritura del body en Windows).
+- Riesgo §10 HMR de Vite: se verifica con la app real en E5 (editar `main.js` y ver la pestaña App recargar).
