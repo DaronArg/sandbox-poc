@@ -3,18 +3,21 @@
 
 Cada texto de narration.json arranca en el startSec de su paso (output/steps.json).
 Si un audio no entra en la duracion de su paso, se acelera lo justo.
-Uso (dentro de WSL): /opt/tts/bin/python demo/narrate.py
+Uso (dentro de WSL): /opt/tts/bin/python demo/narrate.py [guion.json] [salida.mp4]
 """
 import asyncio
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import edge_tts
 
 DEMO = Path(__file__).resolve().parent
 OUT = DEMO / "output"
-AUDIO = OUT / "narration"
+SCRIPT = DEMO / (sys.argv[1] if len(sys.argv) > 1 else "narration.json")
+TARGET = OUT / (sys.argv[2] if len(sys.argv) > 2 else "demo-narrado.mp4")
+AUDIO = OUT / f"audio-{SCRIPT.stem}"
 MARGIN = 0.8  # silencio minimo antes del paso siguiente
 
 
@@ -26,7 +29,7 @@ def duration(path):
 
 
 async def main():
-    narration = json.loads((DEMO / "narration.json").read_text(encoding="utf-8"))
+    narration = json.loads(SCRIPT.read_text(encoding="utf-8"))
     steps = json.loads((OUT / "steps.json").read_text(encoding="utf-8"))
     marks = steps["marks"]
     AUDIO.mkdir(exist_ok=True)
@@ -62,7 +65,7 @@ async def main():
          "-filter_complex", ";".join(filters), "-map", "[aout]",
          "-t", str(steps["durationSec"]), str(wav)],
         check=True)
-    out = OUT / "demo-narrado.mp4"
+    out = TARGET
     subprocess.run(
         ["ffmpeg", "-y", "-v", "error", "-i", str(OUT / "demo.mp4"), "-i", str(wav),
          "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", str(out)],
