@@ -453,6 +453,19 @@ async function main() {
       }
     }
 
+    // el CI corre en GitHub tras el push del submit: esperar a que la corrida termine antes de mostrar el panel
+    {
+      const t2 = Date.now();
+      let r;
+      while (Date.now() - t2 < 300000) {
+        r = await api(`/api/sessions/${sid}/result`);
+        if (r.ciStatus === 'completed') break;
+        await sleep(5000);
+      }
+      log('CI listo tras', Math.round((Date.now() - t2) / 1000), 's:', JSON.stringify(r));
+      if (r.ciStatus !== 'completed' || !r.ciUrl) throw new Error('el CI no termino a tiempo o no devolvio ciUrl: ' + JSON.stringify(r));
+    }
+
     // =============== PASO 12: vista del profesor ===============
     await page.goto(BACKEND + '/professor.html');
     await page.evaluate(() => { document.documentElement.style.zoom = '1.35'; document.body.style.paddingTop = '60px'; });

@@ -6,13 +6,13 @@ Fecha: 2026-10-01. Stack según `.claude/qa-config.md`. Backend reiniciado con b
 - Backend: ya corriendo; reinicio ~10 s, health 200. Imagen `assessment-runtime:poc`: la de C5 (reconstruida; `smoke-runtime` reconstruyó con caché).
 - Frontend: N/A (páginas estáticas del backend) + Angular del examen dentro del contenedor.
 
-## 1. Regresión: todos los `scripts/smoke-*.sh` desde cero (8/8 OK)
+## 1. Regresión: todos los `scripts/smoke-*.sh` desde cero (8/8 OK; repetida en C8 con la imagen bajada de GHCR y `ci.yml` publicado: 8/8 OK otra vez)
 
 | Smoke | Resultado | Duración |
 |---|---|---|
 | `smoke-runtime` | ✅ OK | 10 s |
 | `smoke-backend` | ✅ OK | <1 s |
-| `smoke-git` | ✅ OK (WARN esperado: sin corridas de CI, falta `ci.yml` en `main`) | 18 s |
+| `smoke-git` | ✅ OK (en C8 sin WARN: el push dispara el CI, `runs=2`) | 18 s |
 | `smoke-telemetry` | ✅ OK | 13 s |
 | `smoke-ai` | ✅ OK | 10 s |
 | `smoke-submit` | ✅ OK (persistencia tras reinicio, submit desde el contenedor, SHA en GitHub, 401 post-submit, dos sesiones sin choque de branch) | 32 s |
@@ -24,9 +24,9 @@ Fecha: 2026-10-01. Stack según `.claude/qa-config.md`. Backend reiniciado con b
 | # | DoD | Resultado | Evidencia |
 |---|---|---|---|
 | 1 | Sesión completa termina con `submit`, SHA final guardado y token invalidado | ✅ | Paso 11: `submit` en la terminal de la IDE → "Entrega enviada. SHA final: eb52509…"; luego `git push origin HEAD` → `fatal: Authentication failed` (`qa-evidence/step11b.png`). `GET /result` → `COMPLETED` + `finalSha`; evento `SUBMISSION_COMPLETED` |
-| 2 | El profesor ve timeline, SHA final y resultado del CI | ⚠️ PARCIAL | Paso 12: estado `COMPLETED`, SHA final y timeline OK (`qa-evidence/step12a.png`). El CI muestra `none / -` y no hay link a una corrida: `ci.yml` no está en `main` del repo de examen (ver pendiente) |
+| 2 | El profesor ve timeline, SHA final y resultado del CI | ✅ (C8) | `ci.yml` publicado en `main` (commit `acf9ee9`). Recorrido de C8: tras el `submit` el script esperó la corrida; `GET /result` → `COMPLETED`, `finalSha 2da6da1…`, `ciStatus=completed`, `ciConclusion=success`, `ciUrl=…/actions/runs/36926829341`. Playwright en `professor.html` (paso 12, `demo/output/shots/step12a.png`): estado COMPLETED, SHA final, `completed / success` y link «ver corrida». También verificado con `smoke-submit`: sesión 8 → `completed`/`failure` (sin implementar `applyDiscount` los tests fallan a propósito) y `ciUrl` real |
 | 3 | Los datos sobreviven a un reinicio del backend | ✅ | Tras el recorrido se reinició el backend: la sesión 1 sigue `COMPLETED` con su `finalSha` y su `SUBMISSION_COMPLETED`. También cubierto por `smoke-submit` |
-| 4 | La imagen se baja de un registry y funciona | ❌ NO VALIDADO | Sin `write:packages` no se publicó en GHCR (C4). Se usa la imagen local |
+| 4 | La imagen se baja de un registry y funciona | ✅ (C8) | `ghcr.io/daronarg/assessment-runtime:poc` publicada (paquete **private**, confirmado con `gh api user/packages/container/assessment-runtime`, digest `sha256:ae0fa0fe…`). Se borraron ambas tags locales, `time docker pull` = 19,5 s (1,127 GB comprimidos, 17 capas; 3,9 GB en disco) y `smoke-git.sh` pasó con la imagen bajada (el backend generó el `docker run` con la imagen de GHCR por defecto). El recorrido de UI de C8 también corrió con esa imagen |
 | 5 | El flujo completo funciona con el backend detrás de URL pública HTTPS | ✅ | `smoke-remote` OK (C5). El recorrido con UI se hizo en local, no por el túnel (decisión: el túnel solo se levanta en `smoke-remote`) |
 | 6 | Reporte de factibilidad con capacidad medida | ✅ | `docs/feasibility-report.md` (C6); `docker pull` marcado NO MEDIDO |
 
@@ -34,22 +34,23 @@ Pasos del recorrido de UI (todos ✅): 1 inicio y `docker run` · 2 contenedor l
 
 Eventos en la API de la sesión: `SESSION_STARTED` 1, `AI_PROMPT` 3, `AI_RESPONSE` 3, `COMMAND_EXECUTED` 6, `GIT_PUSH` 1, `SUBMISSION_COMPLETED` 1 (más ruido de `FILE_*`).
 
-## 3. Demo
+## 3. Demo (regrabada en C8)
 - `demo/record-demo.mjs` actualizado a 12 pasos (Angular con `npm start`, `submit`, push rechazado tras la entrega, resultado en el panel); grabó a la primera.
-- `demo/narration.json` ajustado a los nuevos pasos (9–12); `demo/narrate.py` regeneró `demo-narrado.mp4` (444 s, tempo 1.00 en todos los pasos: los audios caben en sus huecos). Frames revisados: pasos 3, 7, 9c, 11a, 11b, 12a.
-- La narración del paso 12 dice explícitamente que el CI figura sin corridas porque el workflow no está publicado.
-- `narration-paisa.json` (variante colombiana) no se actualizó: sigue con 11 pasos.
+- `demo/record-demo.mjs` ahora espera a que la corrida de CI termine (`/result` → `ciStatus=completed`, máx. 5 min) antes del paso 12. Regrabado el 2026-10-01 (12 pasos, 7 min 12 s, sin errores): `demo-narrado.mp4` (es-AR) y `demo-paisa.mp4` (es-CO), 473 s cada uno. Tempo 1.00 en todos los pasos salvo el 1 de la variante paisa (1.10, cabe).
+- La frase del paso 12 en `narration.json` y `narration-paisa.json` ahora dice que GitHub Actions corrió los tests del código entregado y terminó en éxito (con link a la corrida), cada una en su estilo.
+- Frames revisados: 9c (Angular, «Precio final: $150»), 11b (`submit` + push rechazado), 12a (panel con `completed / success` y link). Los videos son locales (`demo/output/`, gitignored); el audio sintetizado no se escuchó, se comprobó duración y tempos.
 
 ## Hallazgos
-- Los textos de la narración y el video no ocultan el CI `none`; si se publica `ci.yml` conviene regrabar (un `node record-demo.mjs` + el comando de `demo/README.md`) y cambiar la frase del paso 12.
-- El panel muestra un link "GitHub Actions del branch" siempre; el link a la corrida (`#ci-link`) solo aparece con una corrida real (no verificado: no hay corridas).
+- El panel muestra además un link «GitHub Actions del branch» siempre; el de la corrida («ver corrida», `#ci-link`) aparece con una corrida real y se verificó.
+- `publish-runtime.sh` asumía `gh` dentro de WSL, que no está instalado: ahora acepta `GHCR_TOKEN`/`GHCR_USER` por entorno (se publicó desde Windows pasando el token de `gh` por stdin, sin imprimirlo).
+- `run-backend.sh` ya no fuerza la imagen local: el default es el de GHCR (el del backend). No se pudo escribir `RUNTIME_IMAGE` en `.env` (el permiso de escritura sobre `.env` fue denegado a este worker); no hace falta porque el default coincide.
+- Gotcha: `wsl -- bash -lc '... | tail'` con el backend lanzado en background desde el mismo comando se cuelga (el pipe queda abierto); correr los smokes con salida a archivo y `< /dev/null`.
 
-## PENDIENTE explícito (requiere al usuario)
-El token de `gh` (DaronArg) tiene scopes `gist, read:org, repo`; faltan `workflow` y `write:packages`. No se hizo device flow ni se usó la otra cuenta.
-1. `gh auth refresh -h github.com -s workflow,write:packages`
-2. CI: `git clone https://github.com/DaronArg/assessment-exam-template.git /tmp/exam && mkdir -p /tmp/exam/.github/workflows && cp exam-template/.github/workflows/ci.yml /tmp/exam/.github/workflows/ && cd /tmp/exam && git add .github && git commit -m "ci: run backend tests on push" && git push origin main`. Verificar: sesión con push + submit → `gh run list -R DaronArg/assessment-exam-template`; `/api/sessions/<id>/result` → `ciStatus=completed`, `ciConclusion=failure`, `ciUrl`; `professor.html` con link.
-3. GHCR: `wsl -d Ubuntu -- bash -lc "cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/publish-runtime.sh"`; `RUNTIME_IMAGE=ghcr.io/daronarg/assessment-runtime:poc` en `.env`; `docker rmi` de ambas tags, `time docker pull`, `./scripts/smoke-git.sh`; completar la fila `docker pull` de `docs/feasibility-report.md`.
+## No verificado / límites
+- El audio de los videos no se escuchó (solo duración, tempos y frames).
+- El recorrido con UI de C8 fue en local (no por túnel); el camino remoto se cubre con `smoke-remote`.
+- Pull medido una sola vez, en esta máquina; no con la red de un alumno ni bajo carga.
 
 ## Entorno final
-- Backend corriendo en WSL (:9090, base con la sesión 1 de la demo, `COMPLETED`), sin `PUBLIC_URL`.
+- Backend corriendo en WSL (:9090, base con la sesión 1 de la demo regrabada, `COMPLETED`; la base previa quedó en `/tmp/c8-db-backup` de WSL), sin `PUBLIC_URL`.
 - Sin proceso `cloudflared`, sin `/tmp/tunnel.url`, 0 contenedores de sesión. Branches de smokes/demo: los smokes borran los suyos; el branch `session-1-d2fbc1` de la demo queda en GitHub (la próxima corrida de `record-demo.mjs` borra los `session-*`).

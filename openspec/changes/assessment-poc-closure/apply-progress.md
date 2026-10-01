@@ -52,3 +52,11 @@
 - DoD: 1, 3, 5, 6 OK; 2 PARCIAL (CI `none`: sin `ci.yml` en main); 4 NO VALIDADO (GHCR). Ambos bloqueados por scopes `workflow`/`write:packages` de gh; comandos exactos en `qa-manual-report.md` y README ("Pendiente").
 - Decisiones: base H2 respaldada en WSL `/tmp/qa-db-backup` y recorrido con base limpia para que el panel muestre solo la sesion de la demo; el recorrido UI se hizo en local (el tunel solo en smoke-remote); variante `narration-paisa.json` no actualizada.
 - Error propio: un `git checkout -- .` descarto cambios sin commitear; se reescribieron README/demo desde cero (mismo contenido que se uso en la grabacion).
+
+## C8 — Pendientes de C2 y C4 (hecho)
+- Token de gh de DaronArg ahora con `workflow` y `write:packages`. El coordinador actualizó `GITHUB_TOKEN` en `.env`; backend reiniciado y `smoke-git` OK antes de seguir.
+- C2: `ci.yml` publicado en `main` del repo de examen (commit `acf9ee9`). Verificado con sesiones reales: `GET /result` devuelve `ciStatus=completed`, `ciConclusion` (`failure` en `smoke-submit`, `success` en la demo con la solución) y `ciUrl` reales; Playwright en `professor.html` muestra conclusión y link «ver corrida».
+- C4: imagen publicada en `ghcr.io/daronarg/assessment-runtime:poc` (privada). Tags locales borradas; `time docker pull` = 19,5 s, 1,127 GB comprimidos (17 capas), 3,9 GB en disco; `smoke-git` OK con la imagen bajada. `docs/feasibility-report.md` actualizado (fila de pull y sección «no validado»).
+- Regresión: 8/8 smokes OK. Demo regrabada (espera al CI antes del paso 12), `narration.json` y `narration-paisa.json` con la frase del CI, `demo-narrado.mp4` y `demo-paisa.mp4` regenerados (473 s).
+- Decisiones: `publish-runtime.sh` acepta `GHCR_TOKEN`/`GHCR_USER` (gh no está en WSL); `run-backend.sh` dejó de forzar la imagen local (default = GHCR). `.env` no se pudo escribir desde este worker (permiso denegado): no se agregó `RUNTIME_IMAGE`, el default ya es el de GHCR.
+- Gotcha: `wsl -- bash -lc '... | tail'` se cuelga si el mismo comando deja el backend en background; correr con salida a archivo y `< /dev/null`.

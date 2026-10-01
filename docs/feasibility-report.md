@@ -62,9 +62,10 @@ Comandos: `scripts/load/measure-container.sh image|start|sample|load|stop` más 
 | Tamaño en disco | 3 904 129 884 B (**3,64 GiB / 3,9 GB**) | `docker image inspect -f '{{.Size}}'` |
 | Comprimida (proxy) | 1 120 849 462 B (**~1,04 GiB / 1,12 GB**) | `docker save assessment-runtime:poc \| gzip -1 \| wc -c` (19,6 s) |
 | Capa más grande | 601 MB (extensiones: Java pack + Continue) | `docker history` |
-| `docker pull` desde GHCR | **NO MEDIDO** — la publicación a GHCR quedó bloqueada por el scope `write:packages` del token de gh (tarea C4) | — |
+| Comprimida real (capas en GHCR) | 1 127 MB (**~1,05 GiB / 1,13 GB**, 17 capas) | `docker manifest inspect ghcr.io/daronarg/assessment-runtime@sha256:c56b…` (suma de `layers[].size`) |
+| `docker pull` desde GHCR (paquete privado) | **MEDIDO: 19,5 s** (3,9 GB descomprimidos, imagen local borrada antes, pull con login previo; sin ninguna capa en caché) | `time docker pull ghcr.io/daronarg/assessment-runtime:poc` |
 
-La compresión es un proxy (gzip nivel 1 del `docker save`, no las capas comprimidas del registry): el pull real pesará algo parecido, pero el tiempo depende de la red del alumno. A modo de orden de magnitud, ~1,1 GB a 100 Mbit/s son ~90 s y a 20 Mbit/s unos 7–8 min (**PROYECTADO**, aritmética).
+El pull medido (19,5 s para ~1,13 GB ≈ 58 MB/s ≈ 460 Mbit/s) es el de WSL en una sola máquina contra GHCR: depende de la red de quien baja. Para el alumno, ~1,13 GB a 100 Mbit/s son ~90 s y a 20 Mbit/s unos 7–8 min (**PROYECTADO**, aritmética). Con la imagen bajada de GHCR se corrió `smoke-git.sh` (OK, el backend generó el `docker run` con `ghcr.io/daronarg/assessment-runtime:poc` por defecto).
 
 ### Arranque en frío (imagen ya local, volumen nuevo, sesión nueva)
 
@@ -125,8 +126,7 @@ Una demo guiada de 5 min no es un examen de 2 h: un alumno real genera más even
 - (De tareas anteriores, no de este reporte) flujo completo de punta a punta, persistencia y `submit`, camino remoto por túnel HTTPS.
 
 **No validado:**
-- `docker pull` desde un registry (GHCR bloqueado por scope `write:packages`) y por lo tanto el tiempo de pull real.
-- Resultado de CI en el panel con una corrida real (C2 bloqueado por scope `workflow`: no hay `ci.yml` en el repo de examen).
+- `docker pull` desde la red de un alumno real (se midió una vez, desde esta máquina, contra GHCR: 19,5 s; no se midió con otras redes ni con GHCR bajo carga de cientos de pulls simultáneos).
 - Carga sobre el **proxy git** (500 clones simultáneos al inicio del examen y 500 pushes al final, todos pasando por el backend hacia GitHub, con sus límites de tasa) y sobre el **gateway de IA** (concurrencia de streams SSE y límites de la API de Anthropic).
 - Red real: latencia/TLS del camino por internet con cientos de clientes; el túnel de Cloudflare rápido es para pruebas, no para 500 alumnos.
 - Dónde se degrada realmente el backend (el generador de carga fue el límite antes), el comportamiento de H2 con base de GB, y crecimiento de memoria del code-server en sesiones de horas (se vio que el proceso principal pasa de 0,2 a ~2 GB tras `npm install`; no se midió a 2 h).
@@ -139,7 +139,7 @@ Una demo guiada de 5 min no es un examen de 2 h: un alumno real genera más even
 | RAM disponible para Docker | **8 GB** (la máquina, con ≥ 6 GB asignados a la VM de Docker/WSL) | el stack completo asentado usa 5,1 GB y el pico 4,4–5,2 GB; el SO y el navegador se suman |
 | CPU | **4 cores** | el arranque del stack llegó a 433 % (4,3 cores) durante ~1 min; después ~15 % |
 | Disco libre | **~10 GB** | imagen 3,9 GB + workspace + `node_modules` + `.m2` |
-| Descarga inicial | ~1,1 GB (imagen comprimida) | solo la primera vez |
+| Descarga inicial | ~1,13 GB (imagen comprimida; 19,5 s medidos en esta máquina) | solo la primera vez |
 | Red | salida HTTPS al backend | todo el tráfico va al backend (git, IA, telemetría) |
 
 Estos mínimos son una estimación a partir de una sola máquina de 16 cores/15,5 GB sin límites de recursos; **no** se probó el contenedor con `--memory`/`--cpus` limitados (con un límite de RAM menor que ~5 GB el kernel podría matar procesos). Si se quiere afirmar "corre en 8 GB", falta correrlo con esos límites.

@@ -18,14 +18,14 @@ Construir (una vez):
 wsl -d Ubuntu -- bash -lc 'cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/build-runtime.sh'
 ```
 
-El `docker run` que genera el backend usa `RUNTIME_IMAGE` (default `ghcr.io/daronarg/assessment-runtime:poc`; `run-backend.sh` fuerza `assessment-runtime:poc` local si la variable no está definida).
-Publicar en GHCR (paquete privado; requiere `gh auth refresh -h github.com -s workflow,write:packages`):
+El `docker run` que genera el backend usa `RUNTIME_IMAGE` (default `ghcr.io/daronarg/assessment-runtime:poc`, paquete privado de GHCR). Para usar otra imagen (p. ej. la local de `build-runtime.sh`), definí `RUNTIME_IMAGE` en el `.env`.
+Publicar en GHCR (requiere un token de gh con `write:packages`: `gh auth refresh -h github.com -s workflow,write:packages`). `publish-runtime.sh` usa `gh` si está en el PATH de WSL; si no, pasale `GHCR_TOKEN` y `GHCR_USER` por entorno:
 
 ```
 wsl -d Ubuntu -- bash -lc 'cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/publish-runtime.sh'
 ```
 
-Después agregar `RUNTIME_IMAGE=ghcr.io/daronarg/assessment-runtime:poc` al `.env` y reiniciar el backend.
+Un alumno (o una máquina limpia) hace `docker login ghcr.io` y `docker pull ghcr.io/daronarg/assessment-runtime:poc`: medido 19,5 s, ~1,13 GB comprimidos (ver `docs/feasibility-report.md`).
 
 ## 2. Levantar el backend (:9090)
 
@@ -60,13 +60,9 @@ PUBLIC_URL=<url> ./scripts/run-backend.sh   # el docker run generado usa BACKEND
 
 El backend no tiene autenticación de usuarios y usa tu API key y token de GitHub: dejá el túnel arriba solo durante la prueba y no publiques la URL. `scripts/smoke-remote.sh` hace todo el ciclo y limpia.
 
-## Pendiente: scopes de `gh`
+## CI del repo de examen
 
-El token de `gh` de DaronArg tiene solo `gist, read:org, repo`. Para cerrar lo que falta:
-
-1. `gh auth refresh -h github.com -s workflow,write:packages` (en el navegador).
-2. **CI:** copiar `exam-template/.github/workflows/ci.yml` a `.github/workflows/` del repo `DaronArg/assessment-exam-template` y pushear a `main`. Hasta entonces el panel muestra el CI como `none` (sin corridas).
-3. **GHCR:** `./scripts/publish-runtime.sh`, y verificar con `docker rmi` + `docker pull` + `./scripts/smoke-git.sh`.
+`.github/workflows/ci.yml` está publicado en `main` de `DaronArg/assessment-exam-template` (fuente: `exam-template/.github/workflows/ci.yml`; para cambiarlo hay que pushearlo al repo de examen con un token con scope `workflow`). Corre `./mvnw test` en cada push; el panel del profesor muestra la conclusión real y el link a la corrida. Un branch de sesión donde el alumno no implementó `applyDiscount` termina en `failure`; con la solución, en `success`.
 
 ## Gotchas
 

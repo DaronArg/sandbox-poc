@@ -63,4 +63,6 @@ ffmpeg -i output/demo.webm -c:v libx264 -crf 23 -pix_fmt yuv420p -movflags +fast
 wsl -d Ubuntu -- bash -lc 'cd /mnt/f/repos/tpi-tup/sandbox-poc/demo && ffmpeg -y -i output/demo.webm -c:v libx264 -crf 23 -pix_fmt yuv420p -movflags +faststart output/demo.mp4 && /opt/tts/bin/python narrate.py'
 ```
 
-`narration-paisa.json` es la variante colombiana de los 11 pasos originales: no se actualizo a los 12 pasos (no tiene textos para submit ni para el panel nuevo).
+`narration-paisa.json` es la variante colombiana de los 12 pasos (voz es-CO). Se genera con `narrate.py narration-paisa.json demo-paisa.mp4`.
+
+El script espera a que termine la corrida de CI en GitHub (hasta 5 min) antes de mostrar el panel del profesor; el paso 12 muestra la conclusion real y el link.

@@ -8,7 +8,6 @@ if [ -f "$ROOT/.env" ]; then
   . <(tr -d '\r' < "$ROOT/.env")
   set +a
 fi
-# Hasta publicar en GHCR (scripts/publish-runtime.sh) se usa la imagen local; definir RUNTIME_IMAGE en .env para cambiarlo.
-export RUNTIME_IMAGE="${RUNTIME_IMAGE:-assessment-runtime:poc}"
+# RUNTIME_IMAGE (en .env o exportada) cambia la imagen; por defecto el backend usa ghcr.io/daronarg/assessment-runtime:poc.
 cd "$ROOT/backend"
 exec ./mvnw spring-boot:run
