@@ -58,7 +58,7 @@ public class ApiController {
                 + " -e SESSION_ID=" + id + " -e SESSION_TOKEN=" + token
                 + " -e BACKEND_URL=http://host.docker.internal:9090"
                 + " -v assessment_" + id + "_workspace:/workspace"
-                + " assessment-runtime:poc";
+                + " " + env("RUNTIME_IMAGE", "ghcr.io/daronarg/assessment-runtime:poc");
         return Map.of("sessionId", id, "dockerRun", dockerRun);
     }
 

@@ -21,3 +21,12 @@
 - Verificación: `scripts/smoke-frontend.sh` OK en contenedor de sesión: Spring Boot arriba en 14 s, `npm install` 23 s, primer `ng serve` responde en 4 s (tras instalar). Con `applyDiscount` implementado dentro del contenedor, Playwright en `http://localhost:4200` desde Windows muestra "Precio final: $150" (API :8081). Sin implementar, el endpoint falla y los tests siguen fallando (diseño).
 - Gotcha: Git Bash de Windows mapea `/tmp` y reescribe rutas `/mnt/...` en `wsl -- bash script`; usar `wsl -d Ubuntu -- bash -lc '...'`. Sin `fd`/`bat`/`eza` en la máquina (se usó Glob/Read).
 - Pendiente para C7: `demo/record-demo.mjs` paso 9 usa `npm run dev` (Vite); pasa a `npm install && npm start` (Angular).
+
+## C4 — Imagen en GHCR (PARCIAL: bloqueado por scope `write:packages`)
+- Hecho: el `docker run` generado usa `RUNTIME_IMAGE` (default `ghcr.io/daronarg/assessment-runtime:poc`, `ApiController`). `scripts/publish-runtime.sh` (login con token de gh, tag, push; aborta si falta el scope). `scripts/run-backend.sh` exporta `RUNTIME_IMAGE=assessment-runtime:poc` si no esta definida, para que los smokes sigan usando la imagen local hasta publicar. No se pudo escribir `.env` (acceso denegado a este worker).
+- NO hecho: `gh auth status` -> DaronArg con scopes `gist, read:org, repo` (sin `write:packages`). Sin device flow ni la otra cuenta. No se hizo login/push a GHCR, ni borrar la imagen local, ni `docker pull`, ni se midio tiempo/tamano de pull. La modificacion de Java no se compilo ni reinicio el backend (regla: no build).
+- Para completar (requiere accion del usuario en el navegador):
+  1. `gh auth refresh -h github.com -s workflow,write:packages` (cuenta DaronArg)
+  2. `wsl -d Ubuntu -- bash -lc "cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/publish-runtime.sh"`
+  3. Agregar `RUNTIME_IMAGE=ghcr.io/daronarg/assessment-runtime:poc` a `.env`; reiniciar backend.
+  4. Verificar: `docker rmi ghcr.io/daronarg/assessment-runtime:poc assessment-runtime:poc`; `time docker pull ghcr.io/daronarg/assessment-runtime:poc` (login previo); `docker manifest inspect`/`docker images` para tamano; `docker tag ghcr.io/daronarg/assessment-runtime:poc assessment-runtime:poc` y `./scripts/smoke-git.sh` (o con RUNTIME_IMAGE de GHCR). Confirmar paquete privado en github.com/users/DaronArg/packages.
