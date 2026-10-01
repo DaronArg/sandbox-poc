@@ -38,3 +38,11 @@
 - Verificacion: `scripts/smoke-remote.sh` -> "OK smoke-remote": docker run sin `--add-host` ni `host.docker.internal`; connect (ACTIVE), clone y checkout del branch, FILE_CREATED visible en la API, IA normal y streaming (SSE) desde el contenedor, push a GitHub, submit COMPLETED con final_sha = HEAD, todo solo por la URL publica. Cleanup del script: borra branch, contenedor, volumen, baja el tunel y reinicia el backend sin `PUBLIC_URL`.
 - Estado final verificado: sin proceso `cloudflared`, sin `/tmp/tunnel.url`, backend arriba con `PUBLIC_URL` vacia, sin contenedores. Regresion: smoke-git OK.
 - Para usarlo a mano: `./scripts/tunnel.sh up`, `PUBLIC_URL=<url> ./scripts/run-backend.sh`, y al terminar `./scripts/tunnel.sh down` + reiniciar el backend sin `PUBLIC_URL`.
+
+## C6 — Capacidad (hecho)
+- Entregables: `scripts/load/` (`telemetry-load.js`, `run-load.sh`, `sample-proc.sh`, `measure-container.sh`, `measure-ide.sh`, `measure-load.sh`, `measure-settled.sh`, `open-ide.mjs`) y `docs/feasibility-report.md` con numeros medidos, comando y marca MEDIDO/PROYECTADO/NO MEDIDO.
+- Carga contra una instancia de PRUEBA del backend (:9191, H2 en /tmp/loaddb, se borra al terminar); la base real (:9090) quedo intacta (14 sesiones antes y despues). 500 sesiones x 5 min: 0 errores, p99 2 ms. Con 2 cores hasta 3200 req/s (32000 sesiones): 0 errores, p99 9,6 ms. No se hallo el punto de degradacion: a 6400 req/s se saturo el generador (1 proceso Node), no el backend; esa etapa se descarto.
+- Contenedor: imagen 3,9 GB en disco, ~1,12 GB comprimida (proxy docker save|gzip), arranque ~3 s, reposo 146 MiB, stack completo asentado 5,1 GB / pico 4,4 GB y 433 % CPU.
+- NO medido: docker pull desde GHCR (C4 bloqueado por write:packages), carga sobre proxy git y gateway de IA, limites --memory/--cpus.
+- Decisiones: generador en contenedor del runtime (no hay node en WSL); mediciones del contenedor usan el backend real :9090 (la sesion creada queda en su base, como en los smokes). Gotcha: Git Bash expande `$VAR` de scripts pasados inline a `wsl bash -lc`; usar archivos .sh.
+- No se toco codigo del producto: no hizo falta re-correr los smokes.
