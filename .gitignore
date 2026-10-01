@@ -1,0 +1,4 @@
+.env
+.claude/
+target/
+node_modules/
