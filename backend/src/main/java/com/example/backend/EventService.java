@@ -15,9 +15,17 @@ public class EventService {
     }
 
     /** Registra un evento generado por el backend; sequence = siguiente de la sesion. */
-    public synchronized void record(long sessionId, String type, String payloadJson) {
-        Long seq = jdbc.queryForObject("SELECT COALESCE(MAX(sequence), 0) + 1 FROM event WHERE session_id = ?", Long.class, sessionId);
-        insert(sessionId, seq, type, Timestamp.from(Instant.now()), payloadJson);
+    public void record(long sessionId, String type, String payloadJson) {
+        record(sessionId, type, Timestamp.from(Instant.now()), payloadJson);
+    }
+
+    /** Igual que record, pero respetando el timestamp del cliente (eventos de la app desktop). */
+    public synchronized void record(long sessionId, String type, Timestamp ts, String payloadJson) {
+        insert(sessionId, nextSequence(sessionId), type, ts, payloadJson);
+    }
+
+    public long nextSequence(long sessionId) {
+        return jdbc.queryForObject("SELECT COALESCE(MAX(sequence), 0) + 1 FROM event WHERE session_id = ?", Long.class, sessionId);
     }
 
     /** Inserta un evento con sequence y timestamp ya definidos (telemetria del agente). */
