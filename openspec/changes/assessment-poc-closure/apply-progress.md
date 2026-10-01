@@ -14,3 +14,10 @@
   1. `gh auth refresh -h github.com -s workflow,write:packages` (cuenta DaronArg)
   2. `git clone https://github.com/DaronArg/assessment-exam-template.git /tmp/exam && mkdir -p /tmp/exam/.github/workflows && cp exam-template/.github/workflows/ci.yml /tmp/exam/.github/workflows/ && cd /tmp/exam && git add .github && git commit -m "ci: run backend tests on push" && git push origin main`
   3. Verificar: nueva sesion con push + submit -> `gh run list -R DaronArg/assessment-exam-template` muestra la corrida del SHA; `curl localhost:9090/api/sessions/<id>/result` -> `ciStatus=completed`, `ciConclusion=failure` (los tests fallan a proposito) y `ciUrl`; Playwright en `professor.html` muestra el link.
+
+## C3 — Examen con Angular (hecho)
+- `exam-template/frontend/` reemplazado por app Angular 20 (generada con `ng new --minimal`, standalone component + `HttpClient` que consume `GET http://localhost:8081/api/price`, `npm start` = `ng serve --host 0.0.0.0 --port 4200`). Publicado en `main` del repo de examen (commit `c6391b1`, sin tocar `.github/workflows`, no requiere scope `workflow`).
+- Imagen: `npm install -g @angular/cli@20` + `NG_CLI_ANALYTICS=false` en `runtime/Dockerfile`. Se fijó la v20 (la 22 pide Node >=22.22.3). Reconstruida (3 min, imagen 3.67 GB en disco).
+- Verificación: `scripts/smoke-frontend.sh` OK en contenedor de sesión: Spring Boot arriba en 14 s, `npm install` 23 s, primer `ng serve` responde en 4 s (tras instalar). Con `applyDiscount` implementado dentro del contenedor, Playwright en `http://localhost:4200` desde Windows muestra "Precio final: $150" (API :8081). Sin implementar, el endpoint falla y los tests siguen fallando (diseño).
+- Gotcha: Git Bash de Windows mapea `/tmp` y reescribe rutas `/mnt/...` en `wsl -- bash script`; usar `wsl -d Ubuntu -- bash -lc '...'`. Sin `fd`/`bat`/`eza` en la máquina (se usó Glob/Read).
+- Pendiente para C7: `demo/record-demo.mjs` paso 9 usa `npm run dev` (Vite); pasa a `npm install && npm start` (Angular).
