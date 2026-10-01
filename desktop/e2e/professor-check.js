@@ -17,8 +17,10 @@ const EV = path.resolve(process.env.EVIDENCE || '../openspec/changes/desktop-ele
   const denied = await page.locator('#timeline tr.denied').count();
   const focus = await page.locator('#timeline tr.focus').count();
   console.log(JSON.stringify({ filasResaltadasDenied: denied, filasResaltadasFocus: focus }));
-  if (!(Number(blocked) >= 4 && Number(exits) >= 1 && denied >= 4 && focus >= 2 && !away.startsWith('0 min 0 s'))) { console.error('FALLO: totales o resaltado incorrectos'); process.exit(1); }
-  await page.screenshot({ path: `${EV}/e6-professor.png`, fullPage: true });
+  const strictFocus = process.env.STRICT_FOCUS !== '0'; // sesiones sin Alt+Tab (recorrido DoD) no tienen salidas de foco
+  const desktopRows = await page.locator('#timeline tr', { hasText: 'DESKTOP_' }).count();
+  if (!(Number(blocked) >= 4 && denied >= 4 && desktopRows >= 1 && (!strictFocus || (Number(exits) >= 1 && focus >= 2 && !away.startsWith('0 min 0 s'))))) { console.error('FALLO: totales o resaltado incorrectos'); process.exit(1); }
+  await page.screenshot({ path: `${EV}/${process.env.SHOT || 'e6-professor.png'}`, fullPage: true });
   await browser.close();
   console.log('professor OK');
 })().catch((e) => { console.error(e.message); process.exit(1); });
