@@ -62,7 +62,7 @@ Add-Type -AssemblyName System.Windows.Forms
 const devtoolsTargets = async () => (await listTargets(PORT)).filter((t) => /devtools/i.test(t.url) || /devtools/i.test(t.type));
 
 async function shellPage() {
-  const t = await findTarget(PORT, (x) => x.url.startsWith('file:'), 60000);
+  const t = await findTarget(PORT, (x) => x.url.startsWith('assessment:'), 60000);
   return attach(t);
 }
 

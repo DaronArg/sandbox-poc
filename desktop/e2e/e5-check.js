@@ -28,7 +28,7 @@ function killHard() { if (child) { try { execFileSync('taskkill', ['/PID', Strin
 const exited = (c) => new Promise((res) => (c.exitCode !== null ? res() : c.once('exit', res)));
 
 async function shellPage() {
-  const t = await findTarget(PORT, (x) => x.url.startsWith('file:'), 60000);
+  const t = await findTarget(PORT, (x) => x.url.startsWith('assessment:'), 60000);
   if (!t) throw new Error('no hay pagina del shell');
   return attach(t);
 }
