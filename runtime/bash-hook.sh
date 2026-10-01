@@ -1,6 +1,9 @@
 # Hook de telemetria: tras cada comando agrega {command, exitCode} a /tmp/telemetry/commands.log.
 __tel_hook() {
   local ec=$?
+  # sin esto, HISTCONTROL=ignoredups (default de Debian en ~/.bashrc) descarta el 2do comando identico seguido
+  HISTCONTROL=
+  HISTIGNORE=
   local line num cmd
   line=$(HISTTIMEFORMAT= history 1)
   num=${line%%[![:space:]0-9]*}
