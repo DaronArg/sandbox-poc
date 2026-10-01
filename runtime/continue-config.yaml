@@ -1,0 +1,20 @@
+name: Assessment
+version: 1.0.0
+schema: v1
+models:
+  - name: Chat
+    provider: anthropic
+    model: __CHAT_MODEL__
+    apiBase: __API_BASE__
+    apiKey: __TOKEN__
+    roles:
+      - chat
+      - edit
+      - apply
+  - name: Autocomplete
+    provider: anthropic
+    model: __AUTOCOMPLETE_MODEL__
+    apiBase: __API_BASE__
+    apiKey: __TOKEN__
+    roles:
+      - autocomplete

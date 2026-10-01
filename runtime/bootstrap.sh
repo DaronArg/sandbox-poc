@@ -16,6 +16,8 @@ json() { node -e 'const j=JSON.parse(require("fs").readFileSync("/tmp/connect.js
 BRANCH="$(json branch)"
 STUDENT_NAME="$(json studentName)"
 STUDENT_EMAIL="$(json studentEmail)"
+CHAT_MODEL="$(json chatModel)"
+AUTOCOMPLETE_MODEL="$(json autocompleteModel)"
 
 git config --global user.name "$STUDENT_NAME"
 git config --global user.email "$STUDENT_EMAIL"
@@ -31,6 +33,11 @@ if [ ! -d /workspace/.git ]; then
 else
   echo "[bootstrap] /workspace already has a repo, leaving it untouched"
 fi
+
+echo "[bootstrap] configuring Continue (AI gateway)"
+mkdir -p "$HOME/.continue" "$HOME/.local/share/code-server/User"
+sed -e "s|__API_BASE__|$BACKEND_URL/ai/v1/|g" -e "s|__TOKEN__|$SESSION_TOKEN|g"     -e "s|__CHAT_MODEL__|$CHAT_MODEL|g" -e "s|__AUTOCOMPLETE_MODEL__|$AUTOCOMPLETE_MODEL|g"     /opt/continue-config.yaml > "$HOME/.continue/config.yaml"
+echo '{"continue.telemetryEnabled": false, "security.workspace.trust.enabled": false}' > "$HOME/.local/share/code-server/User/settings.json"
 
 echo "[bootstrap] starting telemetry agent"
 node /opt/telemetry/agent.js >> /tmp/telemetry-agent.log 2>&1 &
