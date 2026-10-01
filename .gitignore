@@ -2,3 +2,4 @@
 .claude/
 target/
 node_modules/
+.playwright-mcp/
