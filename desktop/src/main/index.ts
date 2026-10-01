@@ -9,6 +9,9 @@ import { Views } from './views';
 let win: BrowserWindow | null = null;
 let controller: Controller | null = null;
 
+// solo desarrollo/pruebas: datos de usuario aislados (sesion guardada, cache) para no tocar los reales
+if (!app.isPackaged && process.env.ASSESSMENT_USER_DATA) app.setPath('userData', process.env.ASSESSMENT_USER_DATA);
+
 installSecurity();
 
 if (!setupSingleInstance(() => win)) {

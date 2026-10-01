@@ -1,6 +1,7 @@
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { Backend, BackendError, Exam, Student } from './backend';
 import { Config } from './config';
+import { ask } from './dialogs';
 import { Docker } from './docker';
 import { Environment, EnvironmentError, Mode, Step, STEP_LABELS, StepId, startEnvironment } from './environment';
 import { appOrigin, clearGateCookies, fetchStatus } from './gate';
@@ -80,12 +81,12 @@ export class Controller {
   }
 
   async newSession(): Promise<void> {
-    const r = await dialog.showMessageBox(this.win, {
+    const r = await ask(this.win, {
       type: 'question', buttons: ['Iniciar otra sesion', 'Cancelar'], defaultId: 1, cancelId: 1,
       message: 'Se va a reemplazar la sesion guardada.',
       detail: 'El codigo de la sesion anterior queda en este equipo, pero ya no vas a poder retomarla desde la aplicacion.',
     });
-    if (r.response !== 0) return;
+    if (r !== 0) return;
     clearSession();
     this.set({ screen: 'start', saved: null });
   }
@@ -195,12 +196,12 @@ export class Controller {
     if (!this.env) { app.exit(0); return; }
     const env = this.env;
     const unsaved = await this.unsavedWork(env.info.containerName).catch(() => false);
-    const r = await dialog.showMessageBox(this.win, {
+    const r = await ask(this.win, {
       type: 'question', buttons: ['Salir', 'Cancelar'], defaultId: 1, cancelId: 1,
       message: 'Se va a apagar el entorno. Tu codigo queda guardado en este equipo para retomar.',
       detail: unsaved ? 'Tenes cambios sin subir a GitHub (git push).' : undefined,
     });
-    if (r.response !== 0) return;
+    if (r !== 0) return;
     this.closing = true;
     this.stopMonitors();
     this.views.setVisible(false);

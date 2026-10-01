@@ -45,3 +45,22 @@ La máquina donde se aplicó la spec NO coincide con lo que asumen los docs prev
   - La terminal del IDE se abre y `./mvnw test` corre (fallan los tests, esperado). Evidencia: `qa-evidence/e4-terminal-mvnw-test.png`.
   - Continue: el panel carga (webview, sin login) en el lateral derecho. **El chat NO se probó**: no hay `ANTHROPIC_API_KEY` (§Entorno).
 - Riesgos §10: (a) code-server rechaza WebSocket detrás del gate → **NO se confirmó** (el workbench y la terminal funcionan, ambos usan WebSocket); sin plan B. (b) `session.fetch`/cookies no aplican al service worker → **NO se confirmó** (el webview de Continue renderiza); sin plan B. (c) UTF-16 de `wsl.exe` → cubierto por unit test con salida real.
+
+## E5 — Desktop: pantallas, App, retomar y cierre
+- Shell (Inicio/Progreso/Error/Workspace/Cierre) + preload con la API mínima de §7.7, pestaña App con polling (3 s) y placeholder, ↻, monitoreo del contenedor (5 s) con pantalla "El entorno se detuvo" (**Reiniciar**), `store.ts` con `safeStorage` (DPAPI), Retomar / Iniciar otra sesión (con confirmación), cierre con detección de trabajo sin subir, flush del agente (`pkill -TERM` + espera ≤5 s), `docker stop -t 10` y recuperación tras cierre abrupto (`docker rm -f` en el paso Contenedor).
+- Decisión (cierre): sin upstream configurado, "commits sin pushear" = commits de `HEAD` que no están en ningún remoto (`git log HEAD --not --remotes`). La spec dice "contar todos los commits de la rama", pero la rama sale de `main` y siempre tendría commits del template: avisaría siempre.
+- Decisión: la sesión guardada se persiste recién cuando el entorno quedó listo (así "Retomar" nunca apunta a una sesión que no llegó a arrancar).
+- Para poder automatizar los cuadros nativos: `desktop/src/main/dialogs.ts` (`ask`). Con la app SIN empaquetar y `ASSESSMENT_TEST_DIALOG_LOG` definido, registra el cuadro y responde `ASSESSMENT_TEST_DIALOG_ANSWER`; empaquetada, ignora esas variables. `ASSESSMENT_USER_DATA` (solo sin empaquetar) aísla los datos de usuario de las pruebas.
+- Verificación: `node desktop/e2e/e5-check.js` (app real, backend + imagen + upstream local; formulario por la UI, IDE y App por CDP). Salida completa en verde, 25 chequeos:
+  1. Iniciar desde el formulario (alumnos/examen del backend), barra con alumno y "activa", contenedor `assessment-<id>-<hex>`.
+  2. Pestaña App con el front apagado → placeholder con `npm run dev`.
+  3. `npm install && npm run dev` tecleado en la terminal del IDE → aparece la vista App (200 por el gate), el placeholder desaparece.
+  4. Editar `frontend/index.html` en el contenedor → la pestaña App muestra el cambio sin recargar (**HMR de Vite OK**).
+  5. Salir con cambios sin pushear → el diálogo agrega "Tenes cambios sin subir a GitHub (git push)."; el contenedor queda apagado.
+  6. Reabrir → tarjeta "Retomar: Ana Alumna · Examen Spring Boot (rama session-26-4b8f23)" → mismo contenedor/volumen, el archivo editado sigue ahí.
+  7. Kill del proceso de Electron (cierre abrupto): el contenedor queda corriendo; al reabrir y Retomar el paso Contenedor lo recrea y el código sigue.
+  8. `docker stop` manual → en ≤30 s pantalla "El entorno se detuvo" con **Reiniciar** → vuelve a levantar.
+  9. "Iniciar otra sesión" pide confirmación antes de reemplazar la guardada.
+  Capturas en `qa-evidence/e5-*.png` (por vista, vía CDP: no se captura el escritorio real).
+- Riesgo §10 HMR: **NO se confirmó**; Vite recarga la pestaña App detrás del gate sin plan B (`GATE_PORT`/`clientPort` no hacen falta).
+- Detalle: en ese recorrido la calculadora muestra "Error: Unexpected end of JSON input" porque `spring-boot:run` no estaba levantado (el proxy de Vite devuelve vacío); con la API arriba responde 500 hasta que se implemente `applyDiscount` (esperado, ver E3).
