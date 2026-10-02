@@ -63,3 +63,8 @@ Decisiones/gotchas:
 - runtime/telemetry/agent.js: el watcher ahora ignora `.git, target, node_modules, .angular, dist, .vscode`.
 - Imagen reconstruida (build-runtime.sh) y publicada en GHCR (publish-runtime.sh, digest sha256:ee27ae65...; token de gh de Windows pasado por GHCR_TOKEN/GHCR_USER porque WSL no tiene gh).
 - smoke-telemetry.sh: OK. Comprobacion puntual: archivo en /workspace/frontend/.angular/cache NO genera evento; /workspace/normal-k1.txt SI (FILE_CREATED).
+
+## K2 - QA con agente (2026-10-02)
+- Experimento hecho: la app en dev con CDP, manejada paso a paso con wrappers de una linea sobre `cdp-lib.js` (sin script e2e). Continue implemento `applyDiscount`, Accept + Ctrl+S lo aplicaron; verificado con `docker exec cat` y eventos AI_PROMPT/AI_RESPONSE. ~3 min, ~20 acciones.
+- Gotchas: el webview de Continue no es target (solo coordenadas); el textarea crece y mueve el boton de enviar; Accept deja el buffer sin guardar. App cerrada y contenedor borrado.
+- Detalle y opinion agente vs script: `agent-qa-experiment.md`.
