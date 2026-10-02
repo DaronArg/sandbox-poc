@@ -49,3 +49,12 @@ Bug real encontrado al verificar: tras entregar, `closing` quedaba en `true` y "
 Verificación (ejecutada): `e7-check.js` sobre `dist/win-unpacked/Assessment.exe`: todas las variantes (`-`, `/`, mayúsculas, `--inspect[-brk]`, `--remote-allow-origins`) → app sale con código 1, ningún puerto abierto; tampering del asar sigue OK. `i3-check.js` con la app real: se borró la imagen local, la app la bajó de GHCR (3.79 GB) y arrancó; Entregar → API COMPLETED, finalSha == SHA de pantalla, SHA existe en GitHub, SUBMISSION_COMPLETED, contenedor apagado, `git-receive-pack` y telemetría → 401, reabrir la app no ofrece "Retomar". Evidencia `qa-evidence/i3-*.png`. `npm test` de `desktop/` 5/5. Backend vuelto a su config por defecto (sin `RUNTIME_IMAGE`); local `assessment-runtime:poc` re-etiquetada desde GHCR.
 
 Pendiente/notas: el instalador/`win-unpacked` se reconstruye en I4 (el actual no incluye el fix de `closing`, que no afecta e7). Quedan en el repo de examen branches `session-26-*` y `session-27-*` de corridas interrumpidas: limpiar en I4.
+
+## I4 — QA final sobre Electron (2026-10-02)
+
+Hecho: `desktop/e2e/i4-check.js` (recorrido DoD con la app real y credenciales reales), README unificado, `qa-manual-report.md` con evidencia en `qa-evidence/i4-*`. Todo en verde: DoD 1–10 (ver reporte), `smoke-all.sh` 8/8, `npm test` 5/5, instalador construido, `e7-check.js` sobre el `win-unpacked` nuevo OK.
+
+Decisiones/gotchas:
+- No hubo bugs de producto nuevos; los tropiezos fueron del script: `~/sandbox-poc` no existe en WSL (se usa `/mnt/f/...`), y el push contra GitHub real tarda ~2 min con la máquina cargada (espera ampliada). Se detienen spring-boot/ng serve antes del push y se reutiliza la primera terminal (la 3ra nueva quedaba sin prompt).
+- Continue se maneja por CDP clickeando el input del sidebar (el webview no es target propio); se verifica por `AI_PROMPT`/`AI_RESPONSE` en la API.
+- `i4-check.js` borra los branches `session-*` del repo de examen al final.

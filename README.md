@@ -11,13 +11,13 @@ Alumno → abre la app (Windows) → elige alumno + examen (o Retomar) → la ap
 El IDE y el front del alumno **no se pueden usar desde un navegador**: solo entran con la cookie del gate, que conoce únicamente la app.
 La API del alumno (`localhost:8081`) se prueba con **Postman o curl**.
 
-> Esta rama está en integración (ver `openspec/changes/desktop-integration/tasks.md`): el examen Angular con rutas relativas, el botón Entregar de la app y el pull de la imagen desde GHCR llegan en las tasks I2 y I3. El flujo web anterior (copiar el `docker run`, `demo/`, camino remoto con túnel) quedó retirado.
+> **Retirado** (flujo web anterior): copiar el `docker run` y abrir el IDE desde un navegador, `demo/` (grabación con Playwright), `smoke-remote.sh`, `tunnel.sh` y las mediciones `scripts/load/measure-*` / `open-ide.mjs`. Los números de capacidad siguen en `docs/feasibility-report.md`. El backend sigue pudiendo servir remoto (`PUBLIC_URL`), pero la app no se probó contra un backend remoto.
 
 ## Requisitos de la máquina del alumno
 
 - Windows 10/11 x64.
 - **WSL2 con la distro `Ubuntu`** y **Docker Engine con systemd** dentro (sin Docker Desktop). Si Docker no responde: `wsl -d Ubuntu -u root -- systemctl start docker`.
-- La imagen `assessment-runtime:poc` en esa distro: `wsl -d Ubuntu -- bash -lc 'cd <repo> && ./scripts/build-runtime.sh'` (o `RUNTIME_IMAGE` apuntando a un registry).
+- La imagen del runtime en esa distro. Si `RUNTIME_IMAGE` (default `assessment-runtime:poc`) no está local, la app hace `docker pull` con progreso (para `ghcr.io/daronarg/assessment-runtime:poc`, paquete privado: `docker login ghcr.io` previo en WSL). Build local: `wsl -d Ubuntu -- bash -lc 'cd <repo> && ./scripts/build-runtime.sh'`; publicar: `./scripts/publish-runtime.sh`.
 - El backend alcanzable en `http://localhost:9090` (en la POC corre en la misma máquina, dentro de WSL).
 - Puerto **8081** libre en Windows.
 - `.env` en la raíz (no versionado) con `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GITHUB_REPO`, `AI_CHAT_MODEL`, `AI_AUTOCOMPLETE_MODEL` (lo lee el backend).
@@ -38,7 +38,7 @@ Dentro de WSL, desde la raíz del repo (el repo de Windows se ve en `/mnt/<unida
 
 ## Entrega
 
-`submit` en una terminal del contenedor (la app tendrá un botón Entregar): commit de lo pendiente, `git push`, flush de la telemetría y `POST /submit` con el SHA de `HEAD`. La sesión queda `COMPLETED` y su token deja de servir (push, IA, telemetría, connect y status responden `401`).
+Botón **Entregar** de la app (con confirmación): ejecuta `submit` en el contenedor (commit de lo pendiente, `git push`, flush de la telemetría, `POST /submit` con el SHA de `HEAD`), muestra "Entrega registrada" con el SHA, apaga el contenedor y esa sesión ya no se ofrece para retomar. La sesión queda `COMPLETED` y su token deja de servir (push, IA, telemetría, connect y status responden `401`). `submit` también se puede correr a mano en la terminal del IDE.
 
 ## App de escritorio
 
@@ -56,9 +56,9 @@ Solo sin empaquetar, variables de prueba: `ASSESSMENT_BACKEND_URL`, `ASSESSMENT_
 Uso:
 
 1. Elegir alumno y examen y **Iniciar** (o **Retomar**: mismo volumen = mismo código).
-2. Pestaña **IDE**: code-server con el repo clonado en la rama `session-<id>-<hex>`. Terminal: `./mvnw test`, `./mvnw spring-boot:run` (API en `:8081`), `git add/commit/push`. Continue (chat IA) en la barra lateral.
-3. Pestaña **App :4200**: front del examen (ver tarea I2).
-4. **Salir** avisa si hay cambios sin subir y apaga el contenedor; el código queda en el volumen.
+2. Pestaña **IDE**: code-server con el repo clonado en la rama `session-<id>-<hex>`. Terminal: `./mvnw test`, `./mvnw spring-boot:run` (API en `:8081`), `git add/commit/push`. Continue (chat IA) en la barra lateral; `Entregar` en la barra de la app al terminar.
+3. Pestaña **App :4200**: front Angular del examen; en `frontend/`: `npm install && npm start` (`ng serve` con `proxy.conf.json`, llama a `/api/...` sin CORS).
+4. **Entregar** cierra la sesión (ver Entrega). **Salir** avisa si hay cambios sin subir y apaga el contenedor; el código queda en el volumen.
 
 ### Probar la API con Postman / curl
 
@@ -71,11 +71,15 @@ Con `./mvnw spring-boot:run` corriendo en el IDE: `GET http://localhost:8081/api
 ## Tests de infraestructura (dentro de WSL)
 
 ```
-./scripts/smoke-all.sh [backend runtime gate git telemetry ai submit]   # sin argumentos: todos los vigentes
+./scripts/smoke-all.sh [backend runtime gate git telemetry ai submit exam]   # sin argumentos: todos los vigentes
 ```
 
 `smoke-gate.sh` cubre los puntos de `desktop-electron/design.md` §12. `smoke-submit.sh` reinicia el backend. Sin `GITHUB_TOKEN` en `.env`, `git` y `telemetry` usan un upstream git local (`scripts/local-upstream.sh`) y `smoke-submit` no corre; sin `ANTHROPIC_API_KEY`, `smoke-ai.sh` verifica solo lo que no llama a Anthropic.
 `scripts/publish-runtime.sh` publica la imagen en GHCR; `scripts/load/` tiene la carga de telemetría usada en `docs/feasibility-report.md` (mediciones del flujo web anterior).
+
+## QA con la app real
+
+`desktop/e2e/i4-check.js` recorre la Definition of Done de `desktop-integration/design.md` §5 con la app Electron, el backend en `:9090` y credenciales reales (Continue, push a GitHub, CI, Entregar, panel del profesor). Resultado y evidencia: `openspec/changes/desktop-integration/qa-manual-report.md`. `e7-check.js` verifica el rechazo de flags de depuración sobre el binario empaquetado.
 
 ## Gotchas
 
