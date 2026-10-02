@@ -58,3 +58,8 @@ Decisiones/gotchas:
 - No hubo bugs de producto nuevos; los tropiezos fueron del script: `~/sandbox-poc` no existe en WSL (se usa `/mnt/f/...`), y el push contra GitHub real tarda ~2 min con la máquina cargada (espera ampliada). Se detienen spring-boot/ng serve antes del push y se reutiliza la primera terminal (la 3ra nueva quedaba sin prompt).
 - Continue se maneja por CDP clickeando el input del sidebar (el webview no es target propio); se verifica por `AI_PROMPT`/`AI_RESPONSE` en la API.
 - `i4-check.js` borra los branches `session-*` del repo de examen al final.
+
+## K1 - Ruido de telemetria (watcher)
+- runtime/telemetry/agent.js: el watcher ahora ignora `.git, target, node_modules, .angular, dist, .vscode`.
+- Imagen reconstruida (build-runtime.sh) y publicada en GHCR (publish-runtime.sh, digest sha256:ee27ae65...; token de gh de Windows pasado por GHCR_TOKEN/GHCR_USER porque WSL no tiene gh).
+- smoke-telemetry.sh: OK. Comprobacion puntual: archivo en /workspace/frontend/.angular/cache NO genera evento; /workspace/normal-k1.txt SI (FILE_CREATED).

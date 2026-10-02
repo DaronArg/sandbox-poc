@@ -19,7 +19,7 @@ function emit(type, payload) {
 // --- archivos
 chokidar
   .watch('/workspace', {
-    ignored: (p) => p.split('/').some((seg) => ['.git', 'target', 'node_modules'].includes(seg)),
+    ignored: (p) => p.split('/').some((seg) => ['.git', 'target', 'node_modules', '.angular', 'dist', '.vscode'].includes(seg)),
     ignoreInitial: true,
     persistent: true,
   })
