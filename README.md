@@ -11,7 +11,9 @@ Alumno → abre la app (Windows) → elige alumno + examen (o Retomar) → la ap
 El IDE y el front del alumno **no se pueden usar desde un navegador**: solo entran con la cookie del gate, que conoce únicamente la app.
 La API del alumno (`localhost:8081`) se prueba con **Postman o curl**.
 
-> **Retirado** (flujo web anterior): copiar el `docker run` y abrir el IDE desde un navegador, `demo/` (grabación con Playwright), `smoke-remote.sh`, `tunnel.sh` y las mediciones `scripts/load/measure-*` / `open-ide.mjs`. Los números de capacidad siguen en `docs/feasibility-report.md`. El backend sigue pudiendo servir remoto (`PUBLIC_URL`), pero la app no se probó contra un backend remoto.
+**Estado del proyecto, qué está validado y cómo probar el ejecutable paso a paso: `docs/ESTADO.md`.** Demo en video sobre la app: `demo/README.md`.
+
+> **Retirado** (flujo web anterior): copiar el `docker run` y abrir el IDE desde un navegador, la grabación web original de `demo/`, `smoke-remote.sh`, `tunnel.sh` y las mediciones `scripts/load/measure-*` / `open-ide.mjs`. Los números de capacidad siguen en `docs/feasibility-report.md`. El backend sigue pudiendo servir remoto (`PUBLIC_URL`), pero la app no se probó contra un backend remoto.
 
 ## Requisitos de la máquina del alumno
 
