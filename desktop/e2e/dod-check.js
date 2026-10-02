@@ -70,16 +70,16 @@ const newTerminal = async (ide) => { await ide.key('`', { code: 'Backquote', vk:
   check(body.endsWith('|200') && JSON.parse(body.split('|')[0]).finalPrice === 150, 'curl.exe a localhost:8081/api/price?price=200&percent=25 -> ' + body);
   await ide.screenshot(`${EV}/dod-3-spring-boot-run.png`);
 
-  log('== DoD 4: npm run dev en frontend/ y la pestana App muestra la calculadora consumiendo la API');
+  log('== DoD 4: npm start en frontend/ y la pestana App muestra la calculadora consumiendo la API');
   await newTerminal(ide);
-  await termType(ide, 'cd frontend && npm install --no-audit --no-fund && npm run dev');
+  await termType(ide, 'cd frontend && npm install --no-audit --no-fund && npm start');
   const appT = await findTarget(PORT, (x) => x.url.includes('app.localhost'), 240000);
   check(!!appT, 'aparecio la vista App');
   await click(sh, 'tab-app');
   await sleep(2500);
   const app = await attach(appT);
   await app.waitFor(`document.getElementById('out') && document.getElementById('out').innerText.includes('Precio final: $150')`, 60000);
-  check(true, 'la calculadora muestra "Precio final: $150" (llamo a /api por el proxy de Vite)');
+  check(true, 'la calculadora muestra "Precio final: $150" (llamo a /api por el proxy de ng serve)');
   await app.screenshot(`${EV}/dod-4-app-calculadora.png`);
   app.close();
   await click(sh, 'tab-ide');

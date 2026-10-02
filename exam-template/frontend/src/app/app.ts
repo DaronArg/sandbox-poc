@@ -21,7 +21,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class App {
   private readonly http = inject(HttpClient);
-  private readonly api = 'http://localhost:8081';
+
 
   protected price = 200;
   protected percent = 25;
@@ -36,7 +36,7 @@ export class App {
     this.isError.set(false);
     this.message.set('Calculando...');
     this.http
-      .get<{ finalPrice: number }>(`${this.api}/api/price`, {
+      .get<{ finalPrice: number }>('/api/price', {
         params: { price: this.price, percent: this.percent },
       })
       .subscribe({

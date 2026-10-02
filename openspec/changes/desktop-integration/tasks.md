@@ -26,9 +26,9 @@
 
 ## I2 — Examen Angular con rutas relativas (spec §2.5)
 
-- [ ] `exam-template/frontend` (Angular): llamadas a `/api/...`, `proxy.conf.json`, `npm start` en `0.0.0.0:4200`. Sin dependencia de CORS.
-- [ ] Publicar en `main` del repo de examen conservando `ci.yml`.
-- [ ] Actualizar en la app los textos y la detección que asuman `npm run dev`.
+- [x] `exam-template/frontend` (Angular): llamadas a `/api/...`, `proxy.conf.json`, `npm start` en `0.0.0.0:4200`. Sin dependencia de CORS.
+- [x] Publicar en `main` del repo de examen conservando `ci.yml`.
+- [x] Actualizar en la app los textos y la detección que asuman `npm run dev`.
 - **Verificación:** en una sesión real de la app (repo clonado de GitHub), `./mvnw spring-boot:run` + `npm install && npm start` → la pestaña App muestra "Precio final" consumiendo la API. `smoke-exam`/`smoke-frontend` actualizado y en verde.
 
 ## I3 — Entregar, pull de imagen y arreglo del bypass (spec §2.6, §2.7, §3)

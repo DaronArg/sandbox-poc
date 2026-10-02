@@ -2,7 +2,7 @@
 # Corre los smokes en orden (dentro de WSL) y resume. Uso: scripts/smoke-all.sh [nombres...]  (default: todos)
 cd "$(dirname "$0")/.."
 LIST=("$@")
-[ ${#LIST[@]} -eq 0 ] && LIST=(backend runtime gate git telemetry ai submit)
+[ ${#LIST[@]} -eq 0 ] && LIST=(backend runtime gate git telemetry ai submit exam)
 RC=0
 for s in "${LIST[@]}"; do
   echo "######## smoke-$s"

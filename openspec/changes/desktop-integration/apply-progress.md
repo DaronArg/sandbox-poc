@@ -21,3 +21,16 @@ Verificación (todo ejecutado):
 Gotchas:
 - Un `/tmp/upstream/.active` viejo (de `local-upstream.sh up`) hace que `run-backend.sh` apunte el proxy git a `localhost:9418` y todo clone dé 500; se borró. Con `GITHUB_TOKEN` en `.env` no hace falta el upstream local.
 - `smoke-git.sh` y `smoke-submit.sh` dejan branches `session-*` en el repo de examen (smoke-submit borra los suyos; smoke-git no): limpiar en I4.
+
+## I2 — Examen Angular con rutas relativas (2026-10-02)
+
+Hecho:
+- `exam-template/frontend`: `app.ts` llama a `/api/price` (sin host); `proxy.conf.json` (`/api` -> `localhost:8081`) registrado en `angular.json` (`serve.options.proxyConfig`); `npm start` ya era `ng serve --host 0.0.0.0 --port 4200`. Sin `@CrossOrigin` en el backend del examen. README del examen actualizado (`npm start`).
+- Publicado en `main` de `DaronArg/assessment-exam-template` (commit 6092d69, solo los archivos cambiados, LF; `.github/workflows/ci.yml` intacto).
+- App: textos `npm run dev` -> `npm start` en `desktop/src/renderer/shell.html` y `runtime/gate/gate.js` (la detección de la pestaña App es por 200 en `:4200`, no asume Vite). E2E de `desktop/e2e/` actualizados (e5: edita `src/app/app.ts` en vez de `index.html`).
+- Scripts: `smoke-exam.sh` reescrito para Angular y ahora además implementa `applyDiscount` en el workspace y exige `finalPrice == 150` por `app.localhost/api`; `smoke-frontend.sh` eliminado (lo cubre smoke-exam); `smoke-exam` agregado a `smoke-all.sh`. Nuevo `desktop/e2e/i2-check.js`.
+
+Decisiones: el comando `ng serve` no necesitó `allowedHosts` (`app.localhost` pasa). Se publicó con LF porque la copia de trabajo en Windows es CRLF y generaba ruido en el diff.
+
+Verificación (ejecutada): `smoke-exam.sh` OK (clone de GitHub real, 4 tests fallan a propósito, ng serve 200 por el gate, `/api` relativo llega a Spring, tras implementar `applyDiscount` -> `finalPrice:150.0`, curl.exe desde Windows 200). `i2-check.js` con la app Electron real: sesión desde el formulario, spring-boot:run + npm install + npm start -> la pestaña App muestra "Precio final: $150" (`qa-evidence/i2-app-precio-final.png`); app cerrada, sin contenedores. `desktop/` `npm test` en verde.
+Nota: `smoke-exam`/`smoke-git` dejan branches `session-*` en el repo de examen (limpiar en I4).

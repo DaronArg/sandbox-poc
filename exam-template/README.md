@@ -22,7 +22,7 @@ Queda en `localhost:8081`. Podés probarla de dos maneras:
 ```
 cd frontend
 npm install
-npm run dev
+npm start
 ```
 
-Se ve en la pestaña **App** de la aplicación. Llama a `/api/...` y Vite lo reenvía a la API del puerto 8081.
+Se ve en la pestaña **App** de la aplicación. Llama a `/api/...` y el dev server de Angular lo reenvía a la API del puerto 8081.

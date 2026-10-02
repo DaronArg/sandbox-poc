@@ -69,13 +69,13 @@ async function ideTerminal(ide, text) {
   await click(sh, 'tab-app');
   await sleep(1500);
   check(!(await sh.eval(`document.getElementById('app-placeholder').hidden`)), 'se muestra el placeholder de la App');
-  check((await sh.eval(`document.getElementById('app-placeholder').innerText`)).includes('npm run dev'), 'el placeholder indica como levantar el front');
+  check((await sh.eval(`document.getElementById('app-placeholder').innerText`)).includes('npm start'), 'el placeholder indica como levantar el front');
   await sh.screenshot(`${EV}/e5-4-app-placeholder.png`);
   await click(sh, 'tab-ide');
 
-  log('== 3. npm run dev desde la terminal del IDE y la pestana App muestra el front');
+  log('== 3. npm start desde la terminal del IDE y la pestana App muestra el front');
   const ide = await attach(await viewTarget('ide', 60000));
-  await ideTerminal(ide, 'cd frontend && npm install --no-audit --no-fund && npm run dev');
+  await ideTerminal(ide, 'cd frontend && npm install --no-audit --no-fund && npm start');
   const appT = await viewTarget('app', 240000);
   check(!!appT, 'aparecio la vista App (el front respondio 200 por el gate)');
   await click(sh, 'tab-app');
@@ -86,8 +86,8 @@ async function ideTerminal(ide, text) {
   await sleep(1500);
   await app.screenshot(`${EV}/e5-5-app-front.png`);
 
-  log('== 4. Editar el front: la pestana App refleja el cambio sin recargar (HMR de Vite)');
-  wsl('docker', 'exec', '-u', 'coder', containerName, 'sed', '-i', 's/Calculadora de precios/Calculadora de precios v2/', '/workspace/frontend/index.html');
+  log('== 4. Editar el front: la pestana App refleja el cambio sin recargar (live reload de ng serve)');
+  wsl('docker', 'exec', '-u', 'coder', containerName, 'sed', '-i', 's/Calculadora de precios/Calculadora de precios v2/', '/workspace/frontend/src/app/app.ts');
   await app.waitFor(`document.querySelector('h1').innerText === 'Calculadora de precios v2'`, 30000);
   check(true, 'la pestana App muestra el h1 editado');
   await app.screenshot(`${EV}/e5-6-app-editado.png`);
@@ -114,7 +114,7 @@ async function ideTerminal(ide, text) {
   await waitVisible(sh, 'bar', 240000);
   const name2 = running();
   check(name2 === containerName, 'se reutiliza el mismo nombre de contenedor y volumen: ' + name2);
-  check(wsl('docker', 'exec', '-u', 'coder', name2, 'grep', '-c', 'precios v2', '/workspace/frontend/index.html').trim() >= 1, 'el volumen conserva el archivo editado (v2)');
+  check(wsl('docker', 'exec', '-u', 'coder', name2, 'grep', '-c', 'precios v2', '/workspace/frontend/src/app/app.ts').trim() >= 1, 'el volumen conserva el archivo editado (v2)');
   const ide2 = await attach(await viewTarget('ide', 60000));
   await ide2.waitFor(`document.body.innerText.includes('frontend')`, 120000);
   await sleep(1500);
@@ -131,7 +131,7 @@ async function ideTerminal(ide, text) {
   await click(sh, 'resume');
   await waitVisible(sh, 'bar', 240000);
   check(running() === containerName, 'el paso Contenedor hizo rm -f y recreo el contenedor: ' + running());
-  check(wsl('docker', 'exec', '-u', 'coder', containerName, 'grep', '-c', 'precios v2', '/workspace/frontend/index.html').trim() >= 1, 'el codigo sigue ahi tras la recuperacion');
+  check(wsl('docker', 'exec', '-u', 'coder', containerName, 'grep', '-c', 'precios v2', '/workspace/frontend/src/app/app.ts').trim() >= 1, 'el codigo sigue ahi tras la recuperacion');
 
   log('== 8. docker stop manual -> pantalla de error -> Reiniciar');
   wsl('docker', 'stop', '-t', '2', containerName);

@@ -71,7 +71,7 @@ const FORBIDDEN_HTML = '<!doctype html><meta charset="utf-8"><title>Acceso deneg
   + '<p>Este entorno solo se puede usar desde la aplicaci&oacute;n de escritorio Assessment.</p></body>';
 const DOWN_HTML = '<!doctype html><meta charset="utf-8"><title>No disponible</title>'
   + '<body style="font-family:sans-serif;margin:3rem"><h1>La app no est&aacute; levantada</h1>'
-  + '<p>Corr&eacute; <code>npm run dev</code> en la terminal del IDE.</p></body>';
+  + '<p>Corr&eacute; <code>npm start</code> en la terminal del IDE.</p></body>';
 
 function upstreamDown(req, res) {
   const api = req.socket.localPort === API_PORT;
