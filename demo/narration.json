@@ -1,0 +1,25 @@
+{
+  "voice": "es-AR-TomasNeural",
+  "steps": {
+    "1": "Esta es la aplicación de escritorio de la plataforma de evaluación. El alumno elige su nombre y el examen, y toca Iniciar.",
+    "2": "La aplicación prepara todo sola: revisa WSL y Docker, verifica la imagen y levanta el contenedor.",
+    "3": "Se abre el entorno de desarrollo dentro de la misma ventana, con el repositorio ya clonado en una rama propia de la sesión.",
+    "4": "El alumno trabaja como en cualquier editor: abre PriceService y escribe a mano un comentario. Cada cambio en los archivos queda registrado por la telemetría.",
+    "5": "Desde la terminal integrada corre los tests. Fallan, porque el método applyDiscount todavía no está implementado.",
+    "6": "Ahora usa el asistente de inteligencia artificial integrado, Continue. Le pregunta qué hace el código y por qué fallan los tests. La consulta no va directo al proveedor: pasa por el gateway de la plataforma, que guarda la pregunta y la respuesta.",
+    "7": "Después le pide que implemente applyDiscount. La inteligencia artificial edita el archivo y el editor muestra la diferencia entre el código anterior y el nuevo. El alumno acepta los cambios y guarda.",
+    "7+19": "Todo ese intercambio, la pregunta, la respuesta y la modificación del archivo, queda en la línea de tiempo de la sesión.",
+    "8": "Vuelve a correr los tests, y ahora pasan los cuatro.",
+    "9": "El contenedor es una estación de trabajo completa. En una terminal levanta el backend, hecho con Spring Boot, y en otra el frontend, una aplicación Angular. Los dos corren dentro del mismo contenedor.",
+    "9+20": "En la pestaña App de la aplicación se ve la calculadora, que consulta la API y muestra el precio final con el descuento aplicado.",
+    "10": "Si alguien intenta abrir el entorno desde un navegador externo, como Edge, el acceso se bloquea: solo funciona dentro de la aplicación. Lo mismo ocurre con el puerto del backend, y cada intento queda registrado.",
+    "11": "Ahora usa Git desde la terminal: revisa los cambios, los agrega, hace el commit y los sube.",
+    "11+17": "El contenedor nunca habla directo con GitHub y no tiene ninguna credencial. El push pasa por el backend de la plataforma, que valida la sesión y recién ahí lo reenvía al repositorio privado.",
+    "11+36": "Cuando el código llega a GitHub, se dispara la integración continua sobre esa rama.",
+    "12": "Para entregar, el alumno toca el botón Entregar. La aplicación informa el SHA final al backend y la sesión queda completada. A partir de ahí, el token deja de servir.",
+    "13": "Por último, el panel del profesor. Muestra el estado de la sesión, el SHA final entregado y el resultado del CI, con el link a la corrida.",
+    "13+11": "Debajo está la línea de tiempo: los eventos de la aplicación, como el inicio y los cambios de pestaña, y los comandos que corrió el alumno.",
+    "13+23": "Cada pregunta a la inteligencia artificial con su respuesta, y los intentos de acceso bloqueados desde el navegador.",
+    "13+35": "Después el push y la entrega con el SHA final. Así se evalúa no solo el resultado, sino cómo llegó el alumno a la solución."
+  }
+}

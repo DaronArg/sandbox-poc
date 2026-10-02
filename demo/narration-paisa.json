@@ -1,0 +1,25 @@
+{
+  "voice": "es-CO-SalomeNeural",
+  "steps": {
+    "1": "Quiubo pues, papasito. Mire: esta es la aplicación de escritorio de la plataforma de evaluación. El alumno escoge su nombre y el examen, y le da Iniciar.",
+    "2": "Y la app hace todo solita: revisa WSL y Docker, mira la imagen y levanta el contenedor. ¡Qué belleza!",
+    "3": "De una se abre el entorno de desarrollo ahí mismo en la ventana, con el repositorio clonado y su propia rama de la sesión.",
+    "4": "El estudiante trabaja como en cualquier editor, papasito: abre PriceService y escribe un comentario a mano. Todo cambio en los archivos queda registrado por la telemetría.",
+    "5": "Desde la terminal integrada le corre los tests. Y fallan, parce, porque el método applyDiscount todavía está en blanco.",
+    "6": "Ahora sí, se le arrima al asistente de inteligencia artificial, Continue, que viene metido en el editor. Le pregunta qué hace el código y por qué se caen los tests. Ojo: esa consulta no va directo al proveedor, pasa por el gateway de la plataforma, que guarda la pregunta y la respuesta.",
+    "7": "Después le pide que implemente applyDiscount. La inteligencia artificial edita el archivo, el editor muestra la diferencia entre lo viejo y lo nuevo, y el estudiante acepta los cambios y guarda. ¡Bacano!",
+    "7+19": "Todo ese intercambio, la pregunta, la respuesta y el cambio en el archivo, queda en la línea de tiempo de la sesión.",
+    "8": "Vuelve y corre los tests, y listo el pollo: pasan los cuatro.",
+    "9": "El contenedor es una estación de trabajo completica. En una terminal levanta el backend, hecho en Spring Boot, y en otra el frontend en Angular. Los dos viven en el mismo contenedor, papasito.",
+    "9+20": "Y en la pestaña App de la aplicación se ve la calculadora, que le pregunta a la API y muestra el precio final con el descuento aplicado. ¡Qué chimba!",
+    "10": "Ahora, si alguien intenta abrir el entorno desde un navegador de afuera, como Edge, ¡pum!, el acceso queda bloqueado: eso solo funciona dentro de la aplicación. Lo mismo con el puerto del backend, y cada intento queda anotado.",
+    "11": "Ahora usa Git desde la terminal: mira los cambios, los agrega, hace el commit y los sube, de una.",
+    "11+17": "El contenedor nunca habla directo con GitHub y no tiene ninguna credencial, parce. El push pasa por el backend de la plataforma, que valida la sesión y solo ahí sí lo reenvía al repositorio privado.",
+    "11+36": "Y apenas el código llega a GitHub, se dispara la integración continua sobre esa rama.",
+    "12": "Para entregar, el estudiante le da al botón Entregar. La app le cuenta al backend cuál es el SHA final y la sesión queda completada. Y de ahí en adelante el token ya no sirve, papasito.",
+    "13": "Y por último, el panel del profesor. Ahí se ve el estado de la sesión, el SHA final entregado y el resultado del CI, con el link a la corrida.",
+    "13+11": "Más abajo está la línea de tiempo: los eventos de la aplicación, como el inicio y los cambios de pestaña, y los comandos que corrió el estudiante.",
+    "13+23": "Cada pregunta a la inteligencia artificial con su respuesta, y los intentos bloqueados desde el navegador. ¡Todo queda anotado!",
+    "13+35": "Y después el push y la entrega con el SHA final. Así se evalúa no solo el resultado, sino cómo llegó el estudiante a la solución, papasito."
+  }
+}
