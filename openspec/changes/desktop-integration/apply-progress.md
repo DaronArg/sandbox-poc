@@ -34,3 +34,18 @@ Decisiones: el comando `ng serve` no necesitó `allowedHosts` (`app.localhost` p
 
 Verificación (ejecutada): `smoke-exam.sh` OK (clone de GitHub real, 4 tests fallan a propósito, ng serve 200 por el gate, `/api` relativo llega a Spring, tras implementar `applyDiscount` -> `finalPrice:150.0`, curl.exe desde Windows 200). `i2-check.js` con la app Electron real: sesión desde el formulario, spring-boot:run + npm install + npm start -> la pestaña App muestra "Precio final: $150" (`qa-evidence/i2-app-precio-final.png`); app cerrada, sin contenedores. `desktop/` `npm test` en verde.
 Nota: `smoke-exam`/`smoke-git` dejan branches `session-*` en el repo de examen (limpiar en I4).
+
+## I3 — Entregar, pull de imagen y arreglo del bypass (2026-10-02)
+
+Hecho:
+- **Entregar:** botón en la barra → confirmación → pantalla "Entregando…" → `docker exec -u coder <c> submit` (flush de telemetría de la app antes) → pantalla "Entrega registrada" con el SHA (parseado de la salida de `submit`), contenedor apagado, `clearSession()` y cookies del gate borradas. Si `submit` falla no se registra nada: vuelve al workspace con un cuadro de error. `GET /status` de una sesión COMPLETED da 401, así que `getSaved` tampoco la ofrece aunque quedara guardada. El evento `SUBMISSION_COMPLETED` lo emite el backend.
+- **Pull:** paso `image` hace `docker pull` si la imagen no está local (detalle "Descargando la imagen…"); si falla, mensaje claro (login al registry en WSL o build local) + últimas líneas del error. Timeout 15 min.
+- **Bypass CDP:** `index.ts` rechaza `^(--?|/)(remote-debugging|inspect|remote-allow-origins)` sin distinguir mayúsculas y consulta `app.commandLine.hasSwitch` de 7 switches. `e7-check.js` suma 9 variantes + `--remote-allow-origins`.
+- **GHCR:** `scripts/publish-runtime.sh` (con `GHCR_TOKEN`/`GHCR_USER` desde `gh auth token`) publicó `ghcr.io/daronarg/assessment-runtime:poc` (digest sha256:9fa13033…, imagen integrada con `submit`). Paquete privado.
+- Nuevo `desktop/e2e/i3-check.js` (`SKIP_PULL=1` para reintentar sin re-bajar 3.8 GB).
+
+Bug real encontrado al verificar: tras entregar, `closing` quedaba en `true` y "Cerrar" no salía (la app quedaba colgada). Arreglado en `controller.submit`.
+
+Verificación (ejecutada): `e7-check.js` sobre `dist/win-unpacked/Assessment.exe`: todas las variantes (`-`, `/`, mayúsculas, `--inspect[-brk]`, `--remote-allow-origins`) → app sale con código 1, ningún puerto abierto; tampering del asar sigue OK. `i3-check.js` con la app real: se borró la imagen local, la app la bajó de GHCR (3.79 GB) y arrancó; Entregar → API COMPLETED, finalSha == SHA de pantalla, SHA existe en GitHub, SUBMISSION_COMPLETED, contenedor apagado, `git-receive-pack` y telemetría → 401, reabrir la app no ofrece "Retomar". Evidencia `qa-evidence/i3-*.png`. `npm test` de `desktop/` 5/5. Backend vuelto a su config por defecto (sin `RUNTIME_IMAGE`); local `assessment-runtime:poc` re-etiquetada desde GHCR.
+
+Pendiente/notas: el instalador/`win-unpacked` se reconstruye en I4 (el actual no incluye el fix de `closing`, que no afecta e7). Quedan en el repo de examen branches `session-26-*` y `session-27-*` de corridas interrumpidas: limpiar en I4.

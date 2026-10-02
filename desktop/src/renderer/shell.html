@@ -15,6 +15,7 @@
     </nav>
     <span class="spacer"></span>
     <button id="reload" title="Recargar la vista activa">&#8635;</button>
+    <button id="submit" class="primary">Entregar</button>
     <button id="quit" class="danger">Salir</button>
   </header>
 
@@ -51,6 +52,18 @@
 
     <section id="closing" hidden>
       <h1>Apagando entorno&hellip;</h1>
+    </section>
+
+    <section id="submitting" hidden>
+      <h1>Entregando&hellip;</h1>
+      <p>Subiendo tu c&oacute;digo a GitHub y registrando la entrega.</p>
+    </section>
+
+    <section id="submitted" hidden>
+      <h1>Entrega registrada</h1>
+      <p>Tu c&oacute;digo final qued&oacute; en GitHub. SHA de la entrega:</p>
+      <pre id="sha"></pre>
+      <div class="row"><button id="submitted-quit" class="primary">Cerrar</button></div>
     </section>
 
     <section id="app-placeholder" hidden>

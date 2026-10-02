@@ -11,7 +11,14 @@ let win: BrowserWindow | null = null;
 let controller: Controller | null = null;
 
 // Empaquetada, la app no admite depuracion remota (CDP) ni inspector: abriria las vistas del IDE al alumno.
-if (app.isPackaged && process.argv.some((a) => /^--(remote-debugging|inspect|remote-allow-origins)/.test(a))) app.exit(1);
+// Chromium acepta el switch con `--`, `-` o `/` y sin distinguir mayusculas (Windows): se rechaza cualquier variante, y ademas
+// se consulta lo que Chromium/Electron realmente parseo (`hasSwitch`).
+const DEBUG_SWITCH_RE = /^(--?|\/)(remote-debugging|inspect|remote-allow-origins)/i;
+const DEBUG_SWITCHES = [
+  'remote-debugging-port', 'remote-debugging-pipe', 'remote-debugging-address', 'remote-allow-origins',
+  'inspect', 'inspect-brk', 'inspect-port',
+];
+if (app.isPackaged && (process.argv.some((a) => DEBUG_SWITCH_RE.test(a)) || DEBUG_SWITCHES.some((s) => app.commandLine.hasSwitch(s)))) app.exit(1);
 
 // solo desarrollo/pruebas: datos de usuario aislados (sesion guardada, cache) para no tocar los reales
 if (!app.isPackaged && process.env.ASSESSMENT_USER_DATA) app.setPath('userData', process.env.ASSESSMENT_USER_DATA);

@@ -28,5 +28,6 @@ export function registerIpc(controller: Controller, shellUrl: () => string): voi
     controller.switchTab(tab as Tab);
   });
   handle('reload', () => controller.reload());
+  handle('submit', () => controller.submit());
   handle('quit', () => controller.quit());
 }

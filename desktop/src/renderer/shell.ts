@@ -6,6 +6,8 @@ type AppState =
   | { screen: 'progress'; steps: Step[] }
   | { screen: 'error'; title: string; message: string; logs?: string; canRetry: boolean }
   | { screen: 'workspace'; student: string; exam: string; tab: 'IDE' | 'APP'; appUp: boolean; port: number }
+  | { screen: 'submitting' }
+  | { screen: 'submitted'; sha: string }
   | { screen: 'closing' };
 
 declare const assessment: {
@@ -18,12 +20,13 @@ declare const assessment: {
   retry(): Promise<void>;
   switchTab(tab: 'IDE' | 'APP'): Promise<void>;
   reload(): Promise<void>;
+  submit(): Promise<void>;
   quit(): Promise<void>;
   onState(cb: (s: AppState) => void): void;
 };
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
-const SECTIONS = ['start', 'progress', 'error', 'closing', 'app-placeholder'];
+const SECTIONS = ['start', 'progress', 'error', 'closing', 'submitting', 'submitted', 'app-placeholder'];
 const ICON: Record<Step['status'], string> = { pending: '○', running: '⏳', ok: '✓', error: '✗' };
 
 function show(id: string | null): void {
@@ -81,6 +84,13 @@ function render(state: AppState): void {
     case 'closing':
       show('closing');
       break;
+    case 'submitting':
+      show('submitting');
+      break;
+    case 'submitted':
+      show('submitted');
+      $('sha').textContent = state.sha;
+      break;
     case 'workspace': {
       $('who').innerHTML = `${esc(state.student)} · ${esc(state.exam)} · <span class="dot">●</span> activa`;
       $('tab-ide').classList.toggle('active', state.tab === 'IDE');
@@ -100,6 +110,8 @@ $('other').addEventListener('click', (e) => { e.preventDefault(); void assessmen
 $('retry').addEventListener('click', () => void assessment.retry());
 $('error-quit').addEventListener('click', () => void assessment.quit());
 $('quit').addEventListener('click', () => void assessment.quit());
+$('submit').addEventListener('click', () => void assessment.submit());
+$('submitted-quit').addEventListener('click', () => void assessment.quit());
 $('reload').addEventListener('click', () => void assessment.reload());
 $('tab-ide').addEventListener('click', () => void assessment.switchTab('IDE'));
 $('tab-app').addEventListener('click', () => void assessment.switchTab('APP'));

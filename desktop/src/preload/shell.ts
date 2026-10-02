@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('assessment', {
   retry: () => ipcRenderer.invoke('retry'),
   switchTab: (tab: 'IDE' | 'APP') => ipcRenderer.invoke('switchTab', tab),
   reload: () => ipcRenderer.invoke('reload'),
+  submit: () => ipcRenderer.invoke('submit'),
   quit: () => ipcRenderer.invoke('quit'),
   onState: (cb: (state: unknown) => void) => {
     ipcRenderer.on('state', (_e, s) => cb(s));

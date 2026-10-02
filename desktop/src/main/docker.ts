@@ -31,6 +31,11 @@ export class Docker {
     return (await this.docker(['image', 'inspect', '--format', '{{.Id}}', image], { timeoutMs: 20000 })).code === 0;
   }
 
+  /** `docker pull` (un registry como GHCR puede ser privado: requiere `docker login` previo en la distro). */
+  pull(image: string): Promise<WslResult> {
+    return this.docker(['pull', image], { timeoutMs: 15 * 60 * 1000 });
+  }
+
   async removeForce(name: string): Promise<void> {
     await this.docker(['rm', '-f', name], { timeoutMs: 30000 });
   }

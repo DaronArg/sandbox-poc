@@ -50,6 +50,19 @@ async function run(args, env, ms, { stdout = false } = {}) {
   check(!r.alive(), 'la app salio (codigo ' + r.code() + ')');
   kill(r.c);
 
+  console.log('== 4b. variantes del flag de depuracion (un guion, barra, mayusculas, --inspect-brk, --remote-allow-origins): ninguna abre CDP');
+  let n = 9560;
+  for (const flag of ['-remote-debugging-port', '/remote-debugging-port', '--REMOTE-DEBUGGING-PORT', '-Remote-Debugging-Port', '--inspect', '-inspect', '--INSPECT', '/inspect', '--inspect-brk']) {
+    const port = n++;
+    r = await run([`${flag}=${port}`], {}, 6000);
+    check(!(await listening(port)), `${flag}=${port}: el puerto no queda abierto`);
+    check(!r.alive(), `${flag}: la app salio (codigo ${r.code()})`);
+    kill(r.c);
+  }
+  r = await run(['--remote-debugging-port=9570', '--remote-allow-origins=*'], {}, 6000);
+  check(!(await listening(9570)), '--remote-allow-origins=*: puerto 9570 cerrado');
+  kill(r.c);
+
   console.log('== 5. modificar app.asar impide que la app arranque (sobre una COPIA de la carpeta de instalacion)');
   const src = path.dirname(EXE);
   const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'assessment-tamper-'));

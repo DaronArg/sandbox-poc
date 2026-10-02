@@ -95,8 +95,15 @@ export async function startEnvironment(
   });
 
   await run('image', async () => {
-    if (!(await docker.imageExists(info.image))) {
-      throw new EnvironmentError('image', `Falta la imagen \`${info.image}\`: corre scripts/build-runtime.sh`);
+    if (await docker.imageExists(info.image)) return;
+    report('image', 'running', 'Descargando la imagen (la primera vez tarda unos minutos)');
+    const r = await docker.pull(info.image);
+    if (r.code !== 0) {
+      throw new EnvironmentError(
+        'image',
+        `No se pudo descargar la imagen \`${info.image}\`. Si el paquete es privado, inicia sesion en el registry dentro de WSL (docker login) o construila local con scripts/build-runtime.sh.`,
+        (r.stderr + r.stdout).trim().split('\n').slice(-8).join('\n'),
+      );
     }
   });
 

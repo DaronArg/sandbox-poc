@@ -16,6 +16,8 @@ export type AppState =
   | { screen: 'progress'; steps: Step[] }
   | { screen: 'error'; title: string; message: string; logs?: string; canRetry: boolean }
   | { screen: 'workspace'; student: string; exam: string; tab: Tab; appUp: boolean; port: number }
+  | { screen: 'submitting' }
+  | { screen: 'submitted'; sha: string }
   | { screen: 'closing' };
 
 const STEP_ORDER: StepId[] = ['wsl', 'distro', 'docker', 'backend', 'session', 'image', 'container', 'gate', 'ide'];
@@ -169,6 +171,44 @@ export class Controller {
     this.views.setVisible(false);
     this.views.closeAll();
     this.set({ screen: 'error', title: 'El entorno se detuvo', message: 'El contenedor ya no esta corriendo. Tu codigo queda guardado: podes reiniciar el entorno.', canRetry: true });
+  }
+
+  // --- entrega (design §2.6): `submit` del contenedor (commit de lo pendiente, push, SHA final al backend)
+  async submit(): Promise<void> {
+    if (this.closing || this.state.screen !== 'workspace' || !this.env) return;
+    const env = this.env;
+    const r = await ask(this.win, {
+      type: 'warning', buttons: ['Entregar', 'Cancelar'], defaultId: 1, cancelId: 1,
+      message: 'Vas a entregar el examen.',
+      detail: 'Se sube tu codigo a GitHub y la sesion se cierra: despues de entregar no podes seguir trabajando ni retomarla.',
+    });
+    if (r !== 0) return;
+    this.closing = true;
+    this.stopMonitors();
+    this.views.setVisible(false);
+    this.set({ screen: 'submitting' });
+    await this.telemetry.flush();
+    const out = await this.docker.exec(env.info.containerName, 'coder', ['submit'], 180000);
+    const sha = /SHA final:\s*([0-9a-f]{7,40})/i.exec(out.stdout)?.[1];
+    if (out.code !== 0 || !sha) {
+      // sin SHA registrado la sesion sigue activa: se vuelve al workspace para reintentar
+      this.closing = false;
+      this.views.setVisible(true);
+      this.setWorkspace(this.views.activeTab, this.views.hasApp);
+      this.startMonitors();
+      await ask(this.win, { type: 'error', buttons: ['Aceptar'], defaultId: 0, cancelId: 0, message: 'No se pudo entregar.', detail: (out.stderr + out.stdout).trim().split('\n').slice(-6).join('\n') });
+      return;
+    }
+    this.telemetry.stop();
+    this.views.closeAll();
+    await this.docker.stop(env.info.containerName, 10).catch(() => undefined);
+    await clearGateCookies().catch(() => undefined);
+    clearSession(); // una sesion entregada no se retoma
+    this.env = null;
+    this.lastMode = null;
+    this.closing = false; // sin entorno, `quit` sale directo (pantalla "Entrega registrada" -> Cerrar)
+    this.win.setTitle('Assessment');
+    this.set({ screen: 'submitted', sha });
   }
 
   // --- foco (design §7.6)
