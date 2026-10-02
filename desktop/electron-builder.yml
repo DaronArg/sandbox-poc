@@ -1,0 +1,29 @@
+appId: ar.utn.tup.assessment
+productName: Assessment
+asar: true
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/main/**
+  - out/preload/**
+  - out/renderer/**
+  - config.json
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+  # sin firma de codigo (design §7.8)
+  signAndEditExecutable: false
+  forceCodeSigning: false
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: false
+  artifactName: Assessment-Setup-${version}.${ext}
+  shortcutName: Assessment
+  createStartMenuShortcut: true
+  createDesktopShortcut: false
+afterPack: scripts/after-pack.js

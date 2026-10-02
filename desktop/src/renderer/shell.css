@@ -1,0 +1,28 @@
+:root { color-scheme: dark; --bg: #1e1e1e; --panel: #2b2b2b; --text: #e6e6e6; --muted: #9aa0a6; --accent: #3b82f6; --danger: #ef4444; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; }
+#bar { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px; background: var(--panel); border-bottom: 1px solid #000; }
+#bar[hidden], [hidden] { display: none !important; }
+#who { color: var(--muted); font-size: 13px; }
+#who .dot { color: #22c55e; }
+nav { display: flex; gap: 4px; margin-left: 16px; }
+.spacer { flex: 1; }
+button { font: inherit; color: var(--text); background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+button:hover { background: #454545; }
+button.tab { background: transparent; border-color: transparent; }
+button.tab.active { background: var(--bg); border-color: #4a4a4a; }
+button.primary { background: var(--accent); border-color: var(--accent); }
+button.danger { border-color: var(--danger); }
+main { padding: 32px 48px; max-width: 760px; }
+h1 { font-weight: 600; margin-top: 0; }
+.card { background: var(--panel); padding: 20px; border-radius: 10px; display: flex; flex-direction: column; gap: 12px; max-width: 420px; }
+label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 13px; }
+select { font: inherit; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid #4a4a4a; border-radius: 6px; }
+a { color: var(--accent); }
+ul#steps { list-style: none; padding: 0; margin: 0; }
+ul#steps li { padding: 6px 0; display: flex; gap: 10px; align-items: baseline; }
+ul#steps .detail { color: var(--muted); font-size: 13px; }
+.error { color: var(--danger); }
+pre { background: #111; padding: 12px; border-radius: 6px; overflow: auto; white-space: pre-wrap; }
+.row { display: flex; gap: 8px; margin-top: 16px; }
+#app-placeholder { position: absolute; top: 44px; left: 0; right: 0; padding: 48px; }

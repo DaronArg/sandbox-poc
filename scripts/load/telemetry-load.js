@@ -28,10 +28,10 @@ async function createSessions(n) {
   const out = [];
   for (let i = 0; i < n; i++) {
     const r = await fetch(`${BACKEND}/api/sessions`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId: 1, examId: 1 }),
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Desktop-Version': '0.1.0' }, body: JSON.stringify({ studentId: 1, examId: 1 }),
     });
     const j = await r.json();
-    out.push({ id: j.sessionId, token: /SESSION_TOKEN=([\w-]+)/.exec(j.dockerRun)[1], seq: 0 });
+    out.push({ id: j.sessionId, token: j.token, seq: 0 });
   }
   return out;
 }

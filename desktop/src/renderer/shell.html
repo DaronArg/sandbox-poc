@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'">
+  <title>Assessment</title>
+  <link rel="stylesheet" href="shell.css">
+</head>
+<body>
+  <header id="bar" hidden>
+    <span id="who"></span>
+    <nav>
+      <button id="tab-ide" class="tab active" data-tab="IDE">IDE</button>
+      <button id="tab-app" class="tab" data-tab="APP">App :4200</button>
+    </nav>
+    <span class="spacer"></span>
+    <button id="reload" title="Recargar la vista activa">&#8635;</button>
+    <button id="quit" class="danger">Salir</button>
+  </header>
+
+  <main>
+    <section id="start" hidden>
+      <h1>Assessment</h1>
+      <div id="resume-card" class="card" hidden>
+        <p id="resume-text"></p>
+        <button id="resume" class="primary">Retomar</button>
+        <a id="other" href="#">Iniciar otra sesi&oacute;n</a>
+      </div>
+      <form id="form" class="card" hidden>
+        <label>Alumno <select id="student"></select></label>
+        <label>Examen <select id="exam"></select></label>
+        <button id="begin" class="primary" type="submit">Iniciar</button>
+        <p id="form-error" class="error"></p>
+      </form>
+    </section>
+
+    <section id="progress" hidden>
+      <h1>Iniciando el entorno</h1>
+      <ul id="steps"></ul>
+    </section>
+
+    <section id="error" hidden>
+      <h1 id="error-title"></h1>
+      <p id="error-message"></p>
+      <details id="error-details"><summary>Detalle</summary><pre id="error-logs"></pre></details>
+      <div class="row">
+        <button id="retry" class="primary">Reintentar</button>
+        <button id="error-quit">Salir</button>
+      </div>
+    </section>
+
+    <section id="closing" hidden>
+      <h1>Apagando entorno&hellip;</h1>
+    </section>
+
+    <section id="app-placeholder" hidden>
+      <h2>Tu front no est&aacute; levantado</h2>
+      <p>En la terminal del IDE:</p>
+      <pre>cd frontend &amp;&amp; npm install &amp;&amp; npm run dev</pre>
+    </section>
+  </main>
+  <script src="shell.js"></script>
+</body>
+</html>

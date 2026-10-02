@@ -8,3 +8,11 @@ node_modules/
 # demo
 demo/output/
 demo/node_modules/
+
+# backend db
+backend/data/
+
+# desktop
+desktop/dist/
+desktop/out/
+desktop/node_modules/

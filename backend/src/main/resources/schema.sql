@@ -2,7 +2,12 @@ CREATE TABLE IF NOT EXISTS student (id BIGINT PRIMARY KEY, name VARCHAR(100), em
 CREATE TABLE IF NOT EXISTS exam (id BIGINT PRIMARY KEY, title VARCHAR(200), description VARCHAR(1000));
 CREATE TABLE IF NOT EXISTS session (
   id BIGINT AUTO_INCREMENT PRIMARY KEY, token VARCHAR(64), student_id BIGINT, exam_id BIGINT,
-  branch VARCHAR(100), status VARCHAR(20), created_at TIMESTAMP, final_sha VARCHAR(64));
+  branch VARCHAR(100), status VARCHAR(20), created_at TIMESTAMP,
+  container_name VARCHAR(100), volume VARCHAR(100), final_sha VARCHAR(64));
 CREATE TABLE IF NOT EXISTS event (
   id BIGINT AUTO_INCREMENT PRIMARY KEY, session_id BIGINT, sequence BIGINT, type VARCHAR(50),
   timestamp TIMESTAMP, payload CLOB);
+-- migracion de bases H2 existentes (CREATE TABLE IF NOT EXISTS no agrega columnas)
+ALTER TABLE session ADD COLUMN IF NOT EXISTS container_name VARCHAR(100);
+ALTER TABLE session ADD COLUMN IF NOT EXISTS volume VARCHAR(100);
+ALTER TABLE session ADD COLUMN IF NOT EXISTS final_sha VARCHAR(64);

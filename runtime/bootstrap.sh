@@ -1,45 +1,12 @@
 #!/bin/bash
+# ENTRYPOINT (corre como root): levanta el gate como usuario `gate` y baja privilegios a `coder` para la sesion.
 set -e
 
-if [ -z "$SESSION_TOKEN" ]; then
-  echo "[bootstrap] standalone mode (no SESSION_TOKEN): starting code-server only"
-  exec code-server --auth none --bind-addr 0.0.0.0:8080 /workspace
-fi
+mkdir -p /run/gate /var/log/gate
+chown gate:gate /run/gate /var/log/gate
+chmod 700 /run/gate
+chmod 755 /var/log/gate
 
-echo "[bootstrap] connecting session $SESSION_ID to $BACKEND_URL"
-if ! curl -fsS -X POST "$BACKEND_URL/api/sessions/$SESSION_ID/connect" \
-     -H "Authorization: Bearer $SESSION_TOKEN" -o /tmp/connect.json; then
-  echo "[bootstrap] ERROR: connect failed (backend unreachable or invalid session/token)" >&2
-  exit 1
-fi
-json() { node -e 'const j=JSON.parse(require("fs").readFileSync("/tmp/connect.json","utf8"));process.stdout.write(String(j[process.argv[1]]))' "$1"; }
-BRANCH="$(json branch)"
-STUDENT_NAME="$(json studentName)"
-STUDENT_EMAIL="$(json studentEmail)"
-CHAT_MODEL="$(json chatModel)"
-AUTOCOMPLETE_MODEL="$(json autocompleteModel)"
+setpriv --reuid=gate --regid=gate --clear-groups node /opt/gate/gate.js &
 
-git config --global user.name "$STUDENT_NAME"
-git config --global user.email "$STUDENT_EMAIL"
-git config --global credential.helper store
-HOSTPORT="${BACKEND_URL#*://}"
-echo "${BACKEND_URL%%://*}://session:${SESSION_TOKEN}@${HOSTPORT}" > "$HOME/.git-credentials"
-chmod 600 "$HOME/.git-credentials"
-
-if [ ! -d /workspace/.git ]; then
-  echo "[bootstrap] cloning exam repo"
-  git clone "$BACKEND_URL/git/$SESSION_ID/repo.git" /workspace
-  git -C /workspace checkout -b "$BRANCH"
-else
-  echo "[bootstrap] /workspace already has a repo, leaving it untouched"
-fi
-
-echo "[bootstrap] configuring Continue (AI gateway)"
-mkdir -p "$HOME/.continue" "$HOME/.local/share/code-server/User"
-sed -e "s|__API_BASE__|$BACKEND_URL/ai/v1/|g" -e "s|__TOKEN__|$SESSION_TOKEN|g"     -e "s|__CHAT_MODEL__|$CHAT_MODEL|g" -e "s|__AUTOCOMPLETE_MODEL__|$AUTOCOMPLETE_MODEL|g"     /opt/continue-config.yaml > "$HOME/.continue/config.yaml"
-echo '{"continue.telemetryEnabled": false, "security.workspace.trust.enabled": false}' > "$HOME/.local/share/code-server/User/settings.json"
-
-echo "[bootstrap] starting telemetry agent"
-node /opt/telemetry/agent.js >> /tmp/telemetry-agent.log 2>&1 &
-
-exec code-server --auth none --bind-addr 0.0.0.0:8080 /workspace
+exec setpriv --reuid=coder --regid=coder --init-groups env HOME=/home/coder /usr/local/bin/session.sh

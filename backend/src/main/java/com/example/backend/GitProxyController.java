@@ -42,7 +42,9 @@ public class GitProxyController {
         String uri = req.getRequestURI();
         String rest = uri.substring(uri.indexOf("/repo.git") + "/repo.git".length());
         String query = req.getQueryString() == null ? "" : "?" + req.getQueryString();
-        String target = "https://github.com/" + System.getenv("GITHUB_REPO") + ".git" + rest + query;
+        String base = System.getenv("GIT_UPSTREAM_BASE"); // solo pruebas locales sin GitHub
+        if (base == null || base.isBlank()) base = "https://github.com";
+        String target = base + "/" + System.getenv("GITHUB_REPO") + ".git" + rest + query;
         String basic = Base64.getEncoder().encodeToString(
                 ("x-access-token:" + System.getenv("GITHUB_TOKEN")).getBytes(StandardCharsets.UTF_8));
 

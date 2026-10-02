@@ -1,73 +1,84 @@
 # Assessment platform — POC
 
-Monorepo: runtime Docker (code-server + Continue + telemetría), backend Spring Boot (sesiones, proxy git, gateway IA, vista del profesor) y el repo de examen (Spring Boot + Angular).
-Diseño: `openspec/changes/assessment-poc/design.md` y `openspec/changes/assessment-poc-closure/design.md`. Capacidad medida: `docs/feasibility-report.md`. QA: `openspec/changes/assessment-poc-closure/qa-manual-report.md`.
-
-Todo Docker y el backend corren **dentro de WSL Ubuntu** (distro en `E:\wsl\Ubuntu`). Los comandos de abajo se ejecutan desde PowerShell/Git Bash en Windows.
-
-## Requisitos
-
-- `.env` en la raíz (no versionado) con `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GITHUB_REPO`, `AI_CHAT_MODEL`, `AI_AUTOCOMPLETE_MODEL`. Opcionales: `RUNTIME_IMAGE`, `PUBLIC_URL`.
-- WSL vivo (`vmIdleTimeout=-1` ya está en `.wslconfig`). Si Docker no responde: `wsl -d Ubuntu -u root -- systemctl start docker`.
-
-## 1. Imagen del runtime
-
-Construir (una vez):
+Monorepo: runtime Docker (code-server + Continue + telemetría + gate), backend Spring Boot (sesiones, proxy git, gateway IA, vista del profesor), el repo de examen (Spring Boot + Angular) y la **app de escritorio del alumno (Electron)**.
+Diseño: `openspec/changes/desktop-integration/design.md` (vigente), `openspec/changes/desktop-electron/design.md` (app), `openspec/changes/assessment-poc*/` (POC y cierre). Capacidad medida: `docs/feasibility-report.md`.
 
 ```
-wsl -d Ubuntu -- bash -lc 'cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/build-runtime.sh'
+Alumno → abre la app (Windows) → elige alumno + examen (o Retomar) → la app hace `docker run` dentro de WSL
+       → IDE y front del alumno en pestañas dentro de la app → `git push` → `submit` → profesor ve timeline + CI en la web
 ```
 
-El `docker run` que genera el backend usa `RUNTIME_IMAGE` (default `ghcr.io/daronarg/assessment-runtime:poc`, paquete privado de GHCR). Para usar otra imagen (p. ej. la local de `build-runtime.sh`), definí `RUNTIME_IMAGE` en el `.env`.
-Publicar en GHCR (requiere un token de gh con `write:packages`: `gh auth refresh -h github.com -s workflow,write:packages`). `publish-runtime.sh` usa `gh` si está en el PATH de WSL; si no, pasale `GHCR_TOKEN` y `GHCR_USER` por entorno:
+El IDE y el front del alumno **no se pueden usar desde un navegador**: solo entran con la cookie del gate, que conoce únicamente la app.
+La API del alumno (`localhost:8081`) se prueba con **Postman o curl**.
+
+> Esta rama está en integración (ver `openspec/changes/desktop-integration/tasks.md`): el examen Angular con rutas relativas, el botón Entregar de la app y el pull de la imagen desde GHCR llegan en las tasks I2 y I3. El flujo web anterior (copiar el `docker run`, `demo/`, camino remoto con túnel) quedó retirado.
+
+## Requisitos de la máquina del alumno
+
+- Windows 10/11 x64.
+- **WSL2 con la distro `Ubuntu`** y **Docker Engine con systemd** dentro (sin Docker Desktop). Si Docker no responde: `wsl -d Ubuntu -u root -- systemctl start docker`.
+- La imagen `assessment-runtime:poc` en esa distro: `wsl -d Ubuntu -- bash -lc 'cd <repo> && ./scripts/build-runtime.sh'` (o `RUNTIME_IMAGE` apuntando a un registry).
+- El backend alcanzable en `http://localhost:9090` (en la POC corre en la misma máquina, dentro de WSL).
+- Puerto **8081** libre en Windows.
+- `.env` en la raíz (no versionado) con `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GITHUB_REPO`, `AI_CHAT_MODEL`, `AI_AUTOCOMPLETE_MODEL` (lo lee el backend).
+
+## Backend (profesor / infraestructura)
+
+Dentro de WSL, desde la raíz del repo (el repo de Windows se ve en `/mnt/<unidad>/...`):
 
 ```
-wsl -d Ubuntu -- bash -lc 'cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/publish-runtime.sh'
+./scripts/run-backend.sh        # foreground, :9090
+./scripts/restart-backend.sh    # background (log en /tmp/backend.log) y espera a que responda
 ```
 
-Un alumno (o una máquina limpia) hace `docker login ghcr.io` y `docker pull ghcr.io/daronarg/assessment-runtime:poc`: medido 19,5 s, ~1,13 GB comprimidos (ver `docs/feasibility-report.md`).
+- H2 **en archivo** (`backend/data/`, ignorado por git): sesiones y eventos sobreviven a reinicios; para empezar de cero, borrá esa carpeta con el backend apagado.
+- Variables opcionales: `RUNTIME_IMAGE` (default `assessment-runtime:poc`), `CONTAINER_BACKEND_URL` (default `PUBLIC_URL` si está, si no `http://host.docker.internal:9090`), `PUBLIC_URL`, `DESKTOP_MIN_VERSION` (default `0.1.0`; versiones menores de la app reciben `426`).
+- **Vista del profesor (web):** http://localhost:9090/professor.html — timeline por sesión, estado, SHA final y resultado del CI (`GET /api/sessions/{id}/result`, consulta a GitHub bajo demanda), tiempo fuera de la app, salidas y accesos bloqueados (`GATE_ACCESS_DENIED`).
+- `http://localhost:9090/` ya no inicia sesiones: solo avisa que se inician desde la app.
 
-## 2. Levantar el backend (:9090)
+## Entrega
 
-```
-wsl -d Ubuntu -- bash -lc 'cd /mnt/f/repos/tpi-tup/sandbox-poc && ./scripts/run-backend.sh'
-```
+`submit` en una terminal del contenedor (la app tendrá un botón Entregar): commit de lo pendiente, `git push`, flush de la telemetría y `POST /submit` con el SHA de `HEAD`. La sesión queda `COMPLETED` y su token deja de servir (push, IA, telemetría, connect y status responden `401`).
 
-Queda en foreground; para dejarlo en background agregá `setsid nohup ... > /tmp/backend.log 2>&1 &` dentro del `bash -lc`.
-Health check: http://localhost:9090/api/exams. H2 en archivo (`backend/data/`, gitignored): sesiones y eventos sobreviven al reinicio; para empezar de cero, borrá esa carpeta con el backend apagado.
+## App de escritorio
 
-## 3. Flujo de una sesión
+Instalar: ejecutar `Assessment-Setup-<versión>.exe` (instalador NSIS **sin firmar**, por-máquina: pide elevación). Abrir **Assessment** desde el menú Inicio.
 
-1. Abrí http://localhost:9090, elegí alumno + examen, **Iniciar**.
-2. Copiá el `docker run` que aparece y ejecutalo **en WSL** (`wsl -d Ubuntu`).
-3. Abrí http://localhost:8080: IDE con el repo del examen clonado en el branch `session-<id>-<hex>`.
-   - Terminal: `./mvnw test` (los tests fallan a propósito hasta implementar `applyDiscount`).
-   - Panel **Continue** (barra lateral izquierda): el chat responde vía el gateway del backend.
-   - Frontend Angular: `./mvnw spring-boot:run` (:8081) y, en otra terminal, `cd frontend && npm install && npm start` (:4200).
-   - `git add/commit/push` desde la terminal: va al backend, que reenvía a GitHub.
-4. **Entrega:** `submit` en una terminal del contenedor. Hace commit de lo pendiente, `git push`, espera el último batch de telemetría y le informa al backend el SHA de `HEAD`. La sesión queda `COMPLETED` y su token deja de servir (push, IA, telemetría y connect responden `401`).
-5. http://localhost:9090/professor.html: elegí la sesión. Arriba de la timeline se ven estado, SHA final y resultado del CI (con link a la corrida); abajo, la timeline (archivos, comandos, IA, push, entrega). El resultado del CI se consulta a GitHub bajo demanda: `GET /api/sessions/{id}/result`.
-
-## 4. Camino remoto (HTTPS por internet)
-
-Para probar con el backend detrás de una URL pública (sin `--add-host`; el contenedor usa solo esa URL):
+Construir el instalador (Windows, Node 22):
 
 ```
-./scripts/tunnel.sh up                      # dentro de WSL; imprime la URL de cloudflared (requiere cloudflared)
-PUBLIC_URL=<url> ./scripts/run-backend.sh   # el docker run generado usa BACKEND_URL=$PUBLIC_URL
-./scripts/tunnel.sh down                    # al terminar, y reiniciar el backend SIN PUBLIC_URL
+powershell -File scripts\build-desktop.ps1     # => desktop\dist\Assessment-Setup-<versión>.exe
 ```
 
-El backend no tiene autenticación de usuarios y usa tu API key y token de GitHub: dejá el túnel arriba solo durante la prueba y no publiques la URL. `scripts/smoke-remote.sh` hace todo el ciclo y limpia.
+Desarrollo (`cd desktop`): `npm ci`, `npm start`, `npm test` (unit tests), `npm run test:e2e` (Playwright `_electron`, necesita backend + imagen).
+Solo sin empaquetar, variables de prueba: `ASSESSMENT_BACKEND_URL`, `ASSESSMENT_WSL_DISTRO`, `ASSESSMENT_DEV_AUTOSTART=<studentId>,<examId>`, `ASSESSMENT_USER_DATA`, `ASSESSMENT_TEST_DIALOG_LOG`/`_ANSWER`.
+
+Uso:
+
+1. Elegir alumno y examen y **Iniciar** (o **Retomar**: mismo volumen = mismo código).
+2. Pestaña **IDE**: code-server con el repo clonado en la rama `session-<id>-<hex>`. Terminal: `./mvnw test`, `./mvnw spring-boot:run` (API en `:8081`), `git add/commit/push`. Continue (chat IA) en la barra lateral.
+3. Pestaña **App :4200**: front del examen (ver tarea I2).
+4. **Salir** avisa si hay cambios sin subir y apaga el contenedor; el código queda en el volumen.
+
+### Probar la API con Postman / curl
+
+Con `./mvnw spring-boot:run` corriendo en el IDE: `GET http://localhost:8081/api/price?price=200&percent=25` desde Postman, curl o REST Client (`requests.http`). Cualquier request con headers de navegador recibe `403`.
 
 ## CI del repo de examen
 
-`.github/workflows/ci.yml` está publicado en `main` de `DaronArg/assessment-exam-template` (fuente: `exam-template/.github/workflows/ci.yml`; para cambiarlo hay que pushearlo al repo de examen con un token con scope `workflow`). Corre `./mvnw test` en cada push; el panel del profesor muestra la conclusión real y el link a la corrida. Un branch de sesión donde el alumno no implementó `applyDiscount` termina en `failure`; con la solución, en `success`.
+`.github/workflows/ci.yml` está publicado en `main` de `DaronArg/assessment-exam-template` (fuente: `exam-template/.github/workflows/ci.yml`). Corre `./mvnw test` en cada push; el panel del profesor muestra la conclusión y el link a la corrida.
+
+## Tests de infraestructura (dentro de WSL)
+
+```
+./scripts/smoke-all.sh [backend runtime gate git telemetry ai submit]   # sin argumentos: todos los vigentes
+```
+
+`smoke-gate.sh` cubre los puntos de `desktop-electron/design.md` §12. `smoke-submit.sh` reinicia el backend. Sin `GITHUB_TOKEN` en `.env`, `git` y `telemetry` usan un upstream git local (`scripts/local-upstream.sh`) y `smoke-submit` no corre; sin `ANTHROPIC_API_KEY`, `smoke-ai.sh` verifica solo lo que no llama a Anthropic.
+`scripts/publish-runtime.sh` publica la imagen en GHCR; `scripts/load/` tiene la carga de telemetría usada en `docs/feasibility-report.md` (mediciones del flujo web anterior).
 
 ## Gotchas
 
-- Cada sesión usa un branch propio `session-<id>-<6 hex>`: no hay choques con branches viejos aunque la base se reinicie. Los smokes y la demo borran los branches que crean.
-- Volumen del workspace persistente: `docker volume rm assessment_<id>_workspace` para empezar de cero.
-- Smoke tests por slice en `scripts/smoke-*.sh` (se ejecutan dentro de WSL: `runtime`, `backend`, `git`, `telemetry`, `ai`, `submit`, `frontend`, `remote`).
-- Git Bash expande `$VAR` en comandos pasados inline a `wsl bash -lc` y mapea `/tmp` y `/mnt/...`: usá `wsl -d Ubuntu -- bash -lc '...'` o archivos `.sh` dentro de WSL. No uses `bash -x` en los smokes (imprime el token de GitHub).
-- Demo grabada de punta a punta: `demo/README.md`.
+- Ramas, contenedores y volúmenes llevan un sufijo aleatorio (`session-<id>-<hex>`): no colisionan al reiniciar el backend. Volumen: `docker volume rm assessment_<id>_<hex>_workspace` para empezar de cero esa sesión.
+- Git Bash expande `$VAR` en comandos inline a `wsl bash -lc` y mapea `/tmp` y `/mnt/...`: usá `wsl -d Ubuntu -- bash -lc '...'` o archivos `.sh` dentro de WSL. No uses `bash -x` en los smokes (imprime tokens).
+- Límites aceptados del bloqueo (ver `desktop-electron/design.md` §5.6): quien tenga acceso a Docker en su WSL puede leer la clave del gate; el instalador no está firmado.

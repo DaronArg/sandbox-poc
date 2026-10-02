@@ -11,6 +11,11 @@
   tr.sel { background: #e8f0fe; }
   #sessions tr { cursor: pointer; }
   code { font-size: 12px; }
+  #summary { display: flex; gap: 2rem; margin: .5rem 0 1rem; }
+  #summary div { background: #f5f5f5; padding: .5rem 1rem; border-radius: 6px; }
+  #summary b { font-size: 1.3rem; display: block; }
+  tr.focus td { background: #fff4e5; }
+  tr.denied td { background: #fde8e8; }
 </style>
 </head>
 <body>
@@ -24,6 +29,11 @@
     <h2>Timeline <span id="title"></span></h2>
     <div id="result"></div>
     <p id="actions"></p>
+    <div id="summary">
+      <div>Tiempo total fuera de la app<b id="away">-</b></div>
+      <div>Salidas de la app<b id="exits">-</b></div>
+      <div>Intentos de acceso bloqueados<b id="blocked">-</b></div>
+    </div>
     <table id="timeline"><thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Detalle</th></tr></thead><tbody></tbody></table>
   </div>
 </div>
@@ -51,11 +61,20 @@ async function loadResult() {
 async function loadTimeline() {
   if (current == null) return;
   const evs = await (await fetch(`/api/sessions/${current}/events`)).json();
+  let awayMs = 0, exits = 0, blocked = 0;
   document.querySelector('#timeline tbody').innerHTML = evs.map((e) => {
     let detail = e.payload || '';
-    try { const p = JSON.parse(e.payload); detail = p.path ?? (p.command !== undefined ? `${p.command} (exit ${p.exitCode})` : e.payload); } catch (_) {}
-    return `<tr><td>${e.sequence}</td><td>${esc(String(e.timestamp).replace('T', ' ').slice(0, 19))}</td><td>${esc(e.type)}</td><td><code>${esc(detail)}</code></td></tr>`;
+    let p = {};
+    try { p = JSON.parse(e.payload) || {}; detail = p.path ?? (p.command !== undefined ? `${p.command} (exit ${p.exitCode})` : e.payload); } catch (_) {}
+    if (e.type === 'DESKTOP_FOCUS_LOST') exits++;
+    if (e.type === 'DESKTOP_FOCUS_GAINED') { awayMs += Number(p.awayMs) || 0; detail = `volvio tras ${Math.round((Number(p.awayMs) || 0) / 1000)} s`; }
+    if (e.type === 'GATE_ACCESS_DENIED') { blocked++; detail = `${p.host || ''}${p.path || ''} (puerto ${p.port}) ${p.userAgent || ''}`; }
+    const cls = e.type.startsWith('DESKTOP_FOCUS_') ? 'focus' : e.type === 'GATE_ACCESS_DENIED' ? 'denied' : '';
+    return `<tr class="${cls}"><td>${e.sequence}</td><td>${esc(String(e.timestamp).replace('T', ' ').slice(0, 19))}</td><td>${esc(e.type)}</td><td><code>${esc(detail)}</code></td></tr>`;
   }).join('');
+  document.getElementById('away').textContent = `${Math.floor(awayMs / 60000)} min ${Math.round((awayMs % 60000) / 1000)} s`;
+  document.getElementById('exits').textContent = exits;
+  document.getElementById('blocked').textContent = blocked;
 }
 
 document.querySelector('#sessions tbody').addEventListener('click', (ev) => {

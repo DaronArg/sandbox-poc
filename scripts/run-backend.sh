@@ -8,6 +8,6 @@ if [ -f "$ROOT/.env" ]; then
   . <(tr -d '\r' < "$ROOT/.env")
   set +a
 fi
-# RUNTIME_IMAGE (en .env o exportada) cambia la imagen; por defecto el backend usa ghcr.io/daronarg/assessment-runtime:poc.
+[ -f /tmp/upstream/.active ] && export GIT_UPSTREAM_BASE=http://localhost:9418
 cd "$ROOT/backend"
 exec ./mvnw spring-boot:run
